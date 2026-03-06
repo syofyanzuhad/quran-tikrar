@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useProgress } from '../../composables/useProgress';
 
 const props = defineProps<{
@@ -7,7 +7,11 @@ const props = defineProps<{
     totalPages?: number;
 }>();
 
-const { completedPages } = useProgress();
+const { completedPages, refreshCompletedPages } = useProgress();
+
+onMounted(() => {
+    void refreshCompletedPages();
+});
 
 const isCompleted = computed(() => completedPages.value.includes(props.page));
 

@@ -3,18 +3,22 @@ import { useProgress } from '../composables/useProgress';
 
 export const useProgressStore = defineStore('progress', () => {
     const {
-        records,
-        addRecord,
-        clearRecords,
         completedPages,
-        totalPagesCompleted,
+        refreshCompletedPages,
+        getOverallProgress,
+        getJuzProgress,
+        getRecentActivity,
+        getStreakDays,
+        getTodayReps,
     } = useProgress();
 
     return {
-        records,
-        addRecord,
-        clearRecords,
         completedPages,
-        totalPagesCompleted,
+        refreshCompletedPages,
+        getOverallProgress,
+        getJuzProgress,
+        getRecentActivity,
+        getStreakDays,
+        getTodayReps,
     };
 });
