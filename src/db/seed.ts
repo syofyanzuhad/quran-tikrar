@@ -12,6 +12,12 @@ const PAGE_DELAY_MS = 100;
 const TOTAL_PAGES = 604;
 const BLOCK_COLORS: TikrarBlockColor[] = ['yellow', 'green', 'blue', 'orange'];
 
+/** Page 1 = Surah Al-Fatihah. Juz 30 (Amma) in 604-page mushaf = pages 582–604. */
+export const INITIAL_PAGE_NUMBERS: number[] = [
+    1,
+    ...Array.from({ length: 604 - 582 + 1 }, (_, i) => 582 + i),
+];
+
 interface ChapterResponse {
     id: number;
     revelation_place: 'makkah' | 'madinah';
@@ -157,7 +163,60 @@ export async function seedPage(pageNumber: number): Promise<void> {
 export type SeedProgressCallback = (percent: number) => void;
 
 /**
+ * Seed a subset of pages with progress reporting.
+ */
+export async function seedPages(
+    pageNumbers: number[],
+    onProgress?: SeedProgressCallback
+): Promise<void> {
+    const total = pageNumbers.length;
+    for (let i = 0; i < total; i++) {
+        await seedPage(pageNumbers[i]!);
+        const percent = total === 0 ? 100 : Math.round(((i + 1) / total) * 100);
+        onProgress?.(percent);
+        if (i < total - 1) {
+            await new Promise((r) => setTimeout(r, PAGE_DELAY_MS));
+        }
+    }
+}
+
+/**
+ * Seed only initial content: Surah 1 (page 1) and Juz 30 (pages 582–604).
+ * Used on first app load; remaining pages can be downloaded from Settings.
+ */
+export async function seedInitialPages(onProgress?: SeedProgressCallback): Promise<void> {
+    await seedPages(INITIAL_PAGE_NUMBERS, onProgress);
+}
+
+/**
+ * Return set of mushaf page numbers that already have ayahs in the DB.
+ */
+export async function getDownloadedPageNumbers(): Promise<number[]> {
+    const ayahs = await db.ayahs.toArray();
+    const pageSet = new Set(ayahs.map((a) => a.page));
+    return [...pageSet].sort((a, b) => a - b);
+}
+
+/**
+ * Seed all pages 1–604 that are not yet in the DB. Use from Settings to download rest.
+ */
+export async function seedRemainingPages(onProgress?: SeedProgressCallback): Promise<void> {
+    const downloaded = await getDownloadedPageNumbers();
+    const downloadedSet = new Set(downloaded);
+    const missing: number[] = [];
+    for (let p = 1; p <= TOTAL_PAGES; p++) {
+        if (!downloadedSet.has(p)) missing.push(p);
+    }
+    if (missing.length === 0) {
+        onProgress?.(100);
+        return;
+    }
+    await seedPages(missing, onProgress);
+}
+
+/**
  * Seed all pages 1-604 with rate limiting and progress reporting.
+ * @deprecated Prefer seedInitialPages on first run and seedRemainingPages from Settings.
  */
 export async function seedAllPages(onProgress?: SeedProgressCallback): Promise<void> {
     for (let page = 1; page <= TOTAL_PAGES; page++) {

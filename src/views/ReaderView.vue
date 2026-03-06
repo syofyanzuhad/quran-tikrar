@@ -131,7 +131,10 @@ useSwipe(readerEl, {
             @block-completed="tikrar.nextBlock"
             @combined-completed="goToPage(pageNumber + 1)"
         />
-        <p v-else class="empty">Tidak ada data untuk halaman ini.</p>
+        <div v-else class="empty-state">
+            <p class="empty">Halaman ini belum diunduh.</p>
+            <p class="empty-hint">Buka <router-link to="/pengaturan">Pengaturan</router-link> untuk mengunduh data Quran (sisa halaman).</p>
+        </div>
     </div>
 </template>
 
@@ -178,9 +181,22 @@ useSwipe(readerEl, {
     justify-content: center;
     padding: 3rem;
 }
-.empty {
-    color: #64748b;
+.empty-state {
     padding: 2rem;
     text-align: center;
+}
+.empty {
+    color: #64748b;
+    margin: 0 0 0.5rem 0;
+}
+.empty-hint {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #64748b;
+}
+.empty-hint a {
+    color: #1a7a4a;
+    font-weight: 500;
+    text-decoration: underline;
 }
 </style>

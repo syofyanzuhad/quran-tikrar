@@ -13,10 +13,13 @@ import type { StoredHafalanProgress, StoredTikrarSession } from '../db';
 
 const settings = inject<SettingsState>(SETTINGS_KEY) ?? useSettings();
 
-const { initializeDatabase } = useQuran();
+const { initializeDatabase, getDownloadedPageCount, downloadRemainingPages, seedProgress } = useQuran();
 
 const storageUsageMb = ref<number | null>(null);
 const storageStatus = ref<'loading' | 'ready' | 'empty'>('loading');
+const downloadedCount = ref<number | null>(null);
+const isDownloadingRemaining = ref(false);
+const TOTAL_MUSHAF_PAGES = 604;
 const resetConfirmText = ref('');
 const showResetConfirm = ref(false);
 const showClearCacheConfirm = ref(false);
@@ -55,8 +58,21 @@ async function updateStorageInfo(): Promise<void> {
         }
         const count = await db.ayahs.count();
         storageStatus.value = count > 0 ? 'ready' : 'empty';
+        downloadedCount.value = await getDownloadedPageCount();
     } catch {
         storageStatus.value = 'empty';
+        downloadedCount.value = null;
+    }
+}
+
+async function startDownloadRemaining(): Promise<void> {
+    if (isDownloadingRemaining.value) return;
+    isDownloadingRemaining.value = true;
+    try {
+        await downloadRemainingPages();
+        await updateStorageInfo();
+    } finally {
+        isDownloadingRemaining.value = false;
     }
 }
 
@@ -291,6 +307,22 @@ const APP_VERSION = '1.0.0';
                     </template>
                     <template v-else> Belum diunduh </template>
                 </p>
+                <p v-if="downloadedCount != null" class="text-sm text-slate-600 dark:text-slate-300">
+                    Halaman terunduh: <strong>{{ downloadedCount }} dari {{ TOTAL_MUSHAF_PAGES }}</strong>
+                    <template v-if="downloadedCount < TOTAL_MUSHAF_PAGES">
+                        — unduh sisa data di bawah untuk baca offline penuh.
+                    </template>
+                </p>
+                <div v-if="downloadedCount != null && downloadedCount < TOTAL_MUSHAF_PAGES" class="flex flex-wrap gap-2">
+                    <button
+                        type="button"
+                        class="action-btn"
+                        :disabled="isDownloadingRemaining"
+                        @click="startDownloadRemaining"
+                    >
+                        {{ isDownloadingRemaining ? `Mengunduh… ${seedProgress}%` : 'Unduh sisa data Quran' }}
+                    </button>
+                </div>
                 <div class="flex flex-wrap gap-2">
                     <button
                         type="button"

@@ -3,7 +3,9 @@ import { db } from '../db';
 import {
     checkIfSeeded,
     seedSurahs,
-    seedAllPages,
+    seedInitialPages,
+    seedRemainingPages,
+    getDownloadedPageNumbers,
 } from '../db/seed';
 import type { Surah, Ayah, TikrarBlock } from '../types/quran';
 
@@ -14,6 +16,8 @@ export function useQuran(): {
     isLoading: Ref<boolean>;
     seedProgress: Ref<number>;
     initializeDatabase: () => Promise<void>;
+    downloadRemainingPages: (onProgress?: (percent: number) => void) => Promise<void>;
+    getDownloadedPageCount: () => Promise<number>;
     getSurahList: () => Promise<Surah[]>;
     getPageData: (page: number) => Promise<{ ayahs: Ayah[]; blocks: TikrarBlock[] }>;
     getAyahsBySurah: (surahId: number) => Promise<Ayah[]>;
@@ -30,7 +34,7 @@ export function useQuran(): {
             const seeded = await checkIfSeeded();
             if (!seeded) {
                 await seedSurahs();
-                await seedAllPages((percent: number) => {
+                await seedInitialPages((percent: number) => {
                     seedProgress.value = percent;
                 });
             }
@@ -67,10 +71,32 @@ export function useQuran(): {
         return db.getPagesInSurah(surahId);
     }
 
+    async function downloadRemainingPages(
+        onProgress?: (percent: number) => void
+    ): Promise<void> {
+        isLoading.value = true;
+        seedProgress.value = 0;
+        try {
+            await seedRemainingPages((percent: number) => {
+                seedProgress.value = percent;
+            });
+            onProgress?.(100);
+        } finally {
+            isLoading.value = false;
+        }
+    }
+
+    async function getDownloadedPageCount(): Promise<number> {
+        const pages = await getDownloadedPageNumbers();
+        return pages.length;
+    }
+
     return {
         isLoading,
         seedProgress,
         initializeDatabase,
+        downloadRemainingPages,
+        getDownloadedPageCount,
         getSurahList,
         getPageData,
         getAyahsBySurah,

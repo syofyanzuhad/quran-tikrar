@@ -62,7 +62,7 @@ function finishOnboarding(): void {
                 <p class="seed-hint">Nyalakan Wi‑Fi atau data seluler lalu muat ulang halaman.</p>
             </template>
             <template v-else>
-                <p class="seed-text">Downloading Quran for offline use...</p>
+                <p class="seed-text">Mengunduh Surah 1 & Juz 30 untuk offline…</p>
                 <p class="seed-progress">{{ seedProgress }}%</p>
             </template>
         </div>
