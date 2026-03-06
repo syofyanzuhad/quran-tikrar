@@ -98,7 +98,6 @@ useSwipe(readerEl, {
             >
                 ← sebelumnya
             </button>
-            <span v-if="settings?.showPageNumber.value !== false" class="page-label">Halaman {{ pageNumber }}</span>
             <button
                 type="button"
                 class="nav-btn"
@@ -138,9 +137,15 @@ useSwipe(readerEl, {
 
 <style scoped>
 .reader-view {
-    padding: 1rem;
+    padding: 0.5rem;
     padding-bottom: 5rem;
     touch-action: pan-y;
+}
+@media (min-width: 640px) {
+    .reader-view {
+        padding: 1rem;
+        padding-bottom: 5rem;
+    }
 }
 .page-nav {
     display: flex;
@@ -167,11 +172,6 @@ useSwipe(readerEl, {
 .nav-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-}
-.page-label {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #0f172a;
 }
 .center-spinner {
     display: flex;

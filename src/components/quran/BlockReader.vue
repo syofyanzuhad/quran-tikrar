@@ -204,7 +204,7 @@ const pages = computed(() => {
 <template>
     <div class="w-full">
         <!-- New block UI (preferred) -->
-        <div v-if="isBlockMode" class="px-4 pb-24 pt-4">
+        <div v-if="isBlockMode" class="pb-24 pt-2 sm:pt-4">
             <PageProgress
                 v-if="showPageNumber"
                 :page="effectivePageNumber ?? 1"
@@ -410,8 +410,14 @@ const pages = computed(() => {
     cursor: pointer;
     border-radius: 0.75rem;
     border-width: 1px 1px 1px 4px;
-    padding: 1rem;
+    padding: 0.75rem;
     transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease, border-color 0.2s ease;
+}
+
+@media (min-width: 640px) {
+    .block-card {
+        padding: 1rem;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
