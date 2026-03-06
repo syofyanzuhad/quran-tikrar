@@ -9,6 +9,11 @@ const route = useRoute();
 const quranStore = useQuranStore();
 
 const surahNumber = computed(() => Number(route.params.surahNumber) || 1);
+const currentPage = computed(() => {
+    const raw = route.query.page;
+    const num = typeof raw === 'string' ? Number(raw) : Array.isArray(raw) ? Number(raw[0]) : NaN;
+    return Number.isFinite(num) ? num : undefined;
+});
 
 const currentSurah = computed(() => quranStore.currentSurah);
 const currentAyahs = computed(() => quranStore.currentAyahs);
@@ -39,6 +44,7 @@ watch(surahNumber, (num) => {
             v-else-if="currentAyahs.length > 0"
             :ayahs="currentAyahs"
             :surah-id="surahNumber"
+            :current-page="currentPage"
         />
         <p v-else class="empty">No ayahs loaded.</p>
     </div>
