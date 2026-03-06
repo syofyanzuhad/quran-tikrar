@@ -1,0 +1,495 @@
+<script setup lang="ts">
+import { ref, computed, onMounted, inject } from 'vue';
+import { useQuran } from '../composables/useQuran';
+import {
+    useSettings,
+    SETTINGS_KEY,
+    type SettingsState,
+    type TargetRepsPreset,
+    type ArabFontSize,
+} from '../composables/useSettings';
+import { db } from '../db';
+import type { StoredHafalanProgress, StoredTikrarSession } from '../db';
+
+const settings = inject<SettingsState>(SETTINGS_KEY) ?? useSettings();
+
+const { initializeDatabase } = useQuran();
+
+const storageUsageMb = ref<number | null>(null);
+const storageStatus = ref<'loading' | 'ready' | 'empty'>('loading');
+const resetConfirmText = ref('');
+const showResetConfirm = ref(false);
+const showClearCacheConfirm = ref(false);
+const isExporting = ref(false);
+const isClearing = ref(false);
+const isResetting = ref(false);
+
+const TARGET_PRESETS: { label: string; preset: TargetRepsPreset }[] = [
+    { label: '7×', preset: '7' },
+    { label: '10×', preset: '10' },
+    { label: '20×', preset: '20' },
+    { label: '40×', preset: '40' },
+    { label: 'Custom', preset: 'custom' },
+];
+
+const FONT_OPTIONS: { label: string; value: ArabFontSize }[] = [
+    { label: 'Kecil', value: 'small' },
+    { label: 'Sedang', value: 'medium' },
+    { label: 'Besar', value: 'large' },
+    { label: 'Sangat Besar', value: 'xlarge' },
+];
+
+const previewTargetText = computed(
+    () => `Setiap blok akan diulang ${settings.targetReps.value} kali sebelum lanjut`
+);
+
+async function updateStorageInfo(): Promise<void> {
+    storageStatus.value = 'loading';
+    try {
+        if ('storage' in navigator && 'estimate' in navigator.storage) {
+            const est = await navigator.storage.estimate();
+            const bytes = est.usage ?? 0;
+            storageUsageMb.value = Math.round((bytes / (1024 * 1024)) * 10) / 10;
+        } else {
+            storageUsageMb.value = null;
+        }
+        const count = await db.ayahs.count();
+        storageStatus.value = count > 0 ? 'ready' : 'empty';
+    } catch {
+        storageStatus.value = 'empty';
+    }
+}
+
+function setTargetPreset(preset: TargetRepsPreset): void {
+    settings.targetRepsPreset.value = preset;
+}
+
+async function exportProgress(): Promise<void> {
+    isExporting.value = true;
+    try {
+        const [hafalan, sessions] = await Promise.all([
+            db.hafalanProgress.toArray(),
+            db.tikrarSessions.toArray(),
+        ]);
+        const payload = {
+            exportedAt: new Date().toISOString(),
+            hafalanProgress: hafalan as unknown as StoredHafalanProgress[],
+            tikrarSessions: sessions as unknown as StoredTikrarSession[],
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], {
+            type: 'application/json',
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `quran-tikrar-progress-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    } finally {
+        isExporting.value = false;
+    }
+}
+
+function openResetConfirm(): void {
+    resetConfirmText.value = '';
+    showResetConfirm.value = true;
+}
+
+function closeResetConfirm(): void {
+    showResetConfirm.value = false;
+    resetConfirmText.value = '';
+}
+
+const canReset = computed(() => resetConfirmText.value.trim() === 'RESET');
+
+async function confirmReset(): Promise<void> {
+    if (!canReset.value) return;
+    isResetting.value = true;
+    try {
+        await db.hafalanProgress.clear();
+        await db.tikrarSessions.clear();
+        closeResetConfirm();
+        await updateStorageInfo();
+    } finally {
+        isResetting.value = false;
+    }
+}
+
+function openClearCacheConfirm(): void {
+    showClearCacheConfirm.value = true;
+}
+
+function closeClearCacheConfirm(): void {
+    showClearCacheConfirm.value = false;
+}
+
+async function confirmClearCache(): Promise<void> {
+    isClearing.value = true;
+    try {
+        await db.surahs.clear();
+        await db.ayahs.clear();
+        await db.tikrarBlocks.clear();
+        await db.hafalanProgress.clear();
+        await db.tikrarSessions.clear();
+        closeClearCacheConfirm();
+        await initializeDatabase();
+        await updateStorageInfo();
+    } finally {
+        isClearing.value = false;
+    }
+}
+
+onMounted(() => {
+    void updateStorageInfo();
+});
+
+const APP_VERSION = '1.0.0';
+</script>
+
+<template>
+    <div class="settings-view">
+        <header class="mb-4">
+            <h1 class="text-xl font-extrabold tracking-tight text-slate-900">Pengaturan</h1>
+            <p class="mt-1 text-sm text-slate-500">Preferensi aplikasi</p>
+        </header>
+
+        <!-- Section 1: Target Pengulangan -->
+        <section class="section">
+            <h2 class="section-title">Target Pengulangan</h2>
+            <div class="flex flex-wrap gap-2">
+                <button
+                    v-for="opt in TARGET_PRESETS"
+                    :key="opt.preset"
+                    type="button"
+                    class="preset-btn"
+                    :class="{ active: settings.targetRepsPreset.value === opt.preset }"
+                    @click="setTargetPreset(opt.preset)"
+                >
+                    {{ opt.label }}
+                </button>
+            </div>
+            <div v-if="settings.targetRepsPreset.value === 'custom'" class="mt-3">
+                <label class="block text-sm font-medium text-slate-700">Jumlah custom</label>
+                <input
+                    v-model.number="settings.customTargetReps"
+                    type="number"
+                    min="1"
+                    max="999"
+                    class="mt-1 w-full max-w-[8rem] rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                />
+            </div>
+            <p class="mt-3 text-sm text-slate-600">{{ previewTargetText }}</p>
+        </section>
+
+        <!-- Section 2: Tampilan Teks Arab -->
+        <section class="section">
+            <h2 class="section-title">Tampilan Teks Arab</h2>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700">Ukuran font</label>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                        <button
+                            v-for="opt in FONT_OPTIONS"
+                            :key="opt.value"
+                            type="button"
+                            class="preset-btn"
+                            :class="{ active: settings.arabFontSize.value === opt.value }"
+                            @click="settings.arabFontSize.value = opt.value"
+                        >
+                            {{ opt.label }}
+                        </button>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3">
+                    <span class="text-sm font-medium text-slate-700">Tampilkan terjemahan Indonesia</span>
+                    <button
+                        type="button"
+                        class="toggle"
+                        :class="{ on: settings.showTranslation.value }"
+                        role="switch"
+                        :aria-checked="settings.showTranslation.value"
+                        @click="settings.showTranslation.value = !settings.showTranslation.value"
+                    >
+                        <span class="toggle-dot" />
+                    </button>
+                </div>
+                <div class="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3">
+                    <span class="text-sm font-medium text-slate-700">Tampilkan nomor halaman mushaf</span>
+                    <button
+                        type="button"
+                        class="toggle"
+                        :class="{ on: settings.showPageNumber.value }"
+                        role="switch"
+                        :aria-checked="settings.showPageNumber.value"
+                        @click="settings.showPageNumber.value = !settings.showPageNumber.value"
+                    >
+                        <span class="toggle-dot" />
+                    </button>
+                </div>
+                <div class="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3">
+                    <span class="text-sm font-medium text-slate-700">Mode gelap</span>
+                    <button
+                        type="button"
+                        class="toggle"
+                        :class="{ on: settings.darkMode.value }"
+                        role="switch"
+                        :aria-checked="settings.darkMode.value"
+                        aria-label="Toggle dark mode"
+                        @click="settings.darkMode.value = !settings.darkMode.value"
+                    >
+                        <span class="toggle-dot" />
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Mode Tikrar -->
+        <section class="section">
+            <h2 class="section-title">Mode Tikrar</h2>
+            <div class="space-y-3">
+                <label class="flex cursor-pointer gap-3 rounded-lg border border-slate-200 bg-white p-4">
+                    <input
+                        v-model="settings.tikrarMode"
+                        type="radio"
+                        value="single"
+                        class="mt-0.5"
+                    />
+                    <div>
+                        <span class="font-medium text-slate-900">Per Blok</span>
+                        <p class="mt-1 text-xs text-slate-500">
+                            Hafal blok 1, selesai lalu lanjut blok 2, dan seterusnya. Satu blok selesai sebelum pindah.
+                        </p>
+                    </div>
+                </label>
+                <label class="flex cursor-pointer gap-3 rounded-lg border border-slate-200 bg-white p-4">
+                    <input
+                        v-model="settings.tikrarMode"
+                        type="radio"
+                        value="cumulative"
+                        class="mt-0.5"
+                    />
+                    <div>
+                        <span class="font-medium text-slate-900">Kumulatif</span>
+                        <p class="mt-1 text-xs text-slate-500">
+                            Blok 1, lalu blok 1+2, lalu 1+2+3, lalu 1+2+3+4. Setelah empat blok selesai, ada sesi gabungan seluruh halaman.
+                        </p>
+                    </div>
+                </label>
+            </div>
+        </section>
+
+        <!-- Section 4: Data & Cache -->
+        <section class="section">
+            <h2 class="section-title">Data & Cache</h2>
+            <div class="space-y-3">
+                <p class="text-sm text-slate-600">
+                    Data Quran:
+                    <template v-if="storageStatus === 'loading'"> Memuat… </template>
+                    <template v-else-if="storageStatus === 'ready'">
+                        ✅ Tersimpan
+                        <template v-if="storageUsageMb != null"> ({{ storageUsageMb }} MB)</template>
+                    </template>
+                    <template v-else> Belum diunduh </template>
+                </p>
+                <div class="flex flex-wrap gap-2">
+                    <button
+                        type="button"
+                        class="action-btn danger"
+                        :disabled="isClearing"
+                        @click="openClearCacheConfirm"
+                    >
+                        {{ isClearing ? 'Menghapus…' : 'Hapus Cache & Unduh Ulang' }}
+                    </button>
+                    <button
+                        type="button"
+                        class="action-btn"
+                        :disabled="isExporting"
+                        @click="exportProgress"
+                    >
+                        {{ isExporting ? 'Mengekspor…' : 'Export Progress' }}
+                    </button>
+                    <button
+                        type="button"
+                        class="action-btn danger"
+                        @click="openResetConfirm"
+                    >
+                        Reset Semua Progress
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: Tentang -->
+        <section class="section">
+            <h2 class="section-title">Tentang</h2>
+            <div class="space-y-2 text-sm text-slate-600">
+                <p>Quran Tikrar — v{{ APP_VERSION }}</p>
+                <p>Data ayat dari <a href="https://quran.com" target="_blank" rel="noopener" class="text-[#1a7a4a] underline">Quran.com</a> API.</p>
+                <p>
+                    <a href="https://github.com/your-repo/quran-tikrar/issues" target="_blank" rel="noopener" class="text-[#1a7a4a] underline">Kirim masukan</a>
+                </p>
+            </div>
+        </section>
+
+        <!-- Reset confirm modal -->
+        <div v-if="showResetConfirm" class="modal-overlay" @click.self="closeResetConfirm">
+            <div class="modal">
+                <h3 class="text-lg font-semibold text-slate-900">Reset Semua Progress</h3>
+                <p class="mt-2 text-sm text-slate-600">
+                    Semua progress hafalan akan dihapus. Ketik <strong>RESET</strong> untuk konfirmasi.
+                </p>
+                <input
+                    v-model="resetConfirmText"
+                    type="text"
+                    class="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    placeholder="Ketik RESET"
+                />
+                <div class="mt-4 flex gap-2">
+                    <button type="button" class="action-btn flex-1" @click="closeResetConfirm">
+                        Batal
+                    </button>
+                    <button
+                        type="button"
+                        class="action-btn danger flex-1"
+                        :disabled="!canReset || isResetting"
+                        @click="confirmReset"
+                    >
+                        {{ isResetting ? 'Menghapus…' : 'Reset' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Clear cache confirm modal -->
+        <div v-if="showClearCacheConfirm" class="modal-overlay" @click.self="closeClearCacheConfirm">
+            <div class="modal">
+                <h3 class="text-lg font-semibold text-slate-900">Hapus Cache & Unduh Ulang</h3>
+                <p class="mt-2 text-sm text-slate-600">
+                    Semua data Quran akan dihapus dan diunduh ulang. Pastikan koneksi internet tersedia.
+                </p>
+                <div class="mt-4 flex gap-2">
+                    <button type="button" class="action-btn flex-1" @click="closeClearCacheConfirm">
+                        Batal
+                    </button>
+                    <button
+                        type="button"
+                        class="action-btn danger flex-1"
+                        :disabled="isClearing"
+                        @click="confirmClearCache"
+                    >
+                        {{ isClearing ? 'Menghapus…' : 'Ya, Hapus & Unduh Ulang' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<style scoped>
+.settings-view {
+    padding: 1rem;
+    padding-bottom: 5rem;
+}
+.section {
+    margin-bottom: 1.5rem;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    padding: 1rem 1.25rem;
+    border-radius: 1rem;
+}
+.section-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #475569;
+    margin: 0 0 0.75rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.preset-btn {
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #475569;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.preset-btn:hover {
+    background: #f8fafc;
+}
+.preset-btn.active {
+    background: #1a7a4a;
+    border-color: #1a7a4a;
+    color: #fff;
+}
+.toggle {
+    width: 2.5rem;
+    height: 1.25rem;
+    border-radius: 9999px;
+    background: #cbd5e1;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s;
+}
+.toggle.on {
+    background: #1a7a4a;
+}
+.toggle-dot {
+    display: block;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background: #fff;
+    margin-left: 0.125rem;
+    transition: transform 0.2s;
+}
+.toggle.on .toggle-dot {
+    transform: translateX(1.25rem);
+}
+.action-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #334155;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.action-btn:hover:not(:disabled) {
+    background: #f1f5f9;
+}
+.action-btn.danger {
+    border-color: #fecaca;
+    color: #b91c1c;
+}
+.action-btn.danger:hover:not(:disabled) {
+    background: #fef2f2;
+}
+.action-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 1rem;
+}
+.modal {
+    background: #fff;
+    border-radius: 1rem;
+    padding: 1.25rem;
+    max-width: 24rem;
+    width: 100%;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+</style>
