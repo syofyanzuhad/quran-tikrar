@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { Ayah, TikrarBlock } from '../../types/quran';
+import type { Ayah, TikrarBlock, TikrarBlockColor } from '../../types/quran';
 import AyahBlock from './AyahBlock.vue';
 import PageProgress from './PageProgress.vue';
 import TikrarCounter from './TikrarCounter.vue';
@@ -78,6 +78,21 @@ function splitIntoFourBlocks<T>(items: T[]): T[][] {
     return result;
 }
 
+function colorForBlockIndex(blockIndex: number): TikrarBlockColor {
+    switch (blockIndex) {
+        case 0:
+            return 'yellow';
+        case 1:
+            return 'green';
+        case 2:
+            return 'blue';
+        case 3:
+            return 'orange';
+        default:
+            return 'yellow';
+    }
+}
+
 const resolvedBlocks = computed(() => {
     const page = effectivePageNumber.value ?? 1;
     if (props.blocks && props.blocks.length > 0) {
@@ -90,7 +105,7 @@ const resolvedBlocks = computed(() => {
                     pageNumber: page,
                     blockIndex: i,
                     ayahIds: [],
-                    color: (['yellow', 'green', 'blue', 'orange'] as const)[i],
+                    color: colorForBlockIndex(i),
                     targetReps: props.targetReps,
                 }
             );
@@ -105,7 +120,7 @@ const resolvedBlocks = computed(() => {
         pageNumber: page,
         blockIndex: i,
         ayahIds: group.map((a) => a.id),
-        color: (['yellow', 'green', 'blue', 'orange'] as const)[i],
+        color: colorForBlockIndex(i),
         targetReps: props.targetReps,
     })) satisfies TikrarBlock[];
 });

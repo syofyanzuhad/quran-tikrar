@@ -2,24 +2,30 @@
 import { computed } from 'vue';
 import { useAyahTikrar } from '../../composables/useTikrar';
 
-const props = defineProps<
-    | {
-          /** Block mode (controlled by parent) */
-          blockId: string;
-          reps: number;
-          targetReps: number;
-          surahNumber?: never;
-          ayahNumber?: never;
-      }
-    | {
-          /** Legacy per-ayah mode (localStorage) */
-          surahNumber: number;
-          ayahNumber: number;
-          blockId?: never;
-          reps?: never;
-          targetReps?: never;
-      }
->();
+const props = withDefaults(
+    defineProps<{
+        /**
+         * Block mode (controlled by parent).
+         * When `blockId` is provided, this component will emit `increment/reset`
+         * instead of mutating localStorage.
+         */
+        blockId?: string;
+        reps?: number;
+        targetReps?: number;
+
+        /**
+         * Legacy per-ayah mode (localStorage).
+         */
+        surahNumber?: number;
+        ayahNumber?: number;
+    }>(),
+    {
+        reps: 0,
+        targetReps: 20,
+        surahNumber: 0,
+        ayahNumber: 0,
+    }
+);
 
 const emit = defineEmits<{
     (e: 'increment'): void;
@@ -28,7 +34,7 @@ const emit = defineEmits<{
 
 const { getCount, increment, reset } = useAyahTikrar();
 
-const isBlockMode = computed(() => 'blockId' in props);
+const isBlockMode = computed(() => props.blockId != null);
 const count = computed(() => {
     if (isBlockMode.value) return props.reps;
     return getCount(props.surahNumber, props.ayahNumber);
@@ -129,4 +135,4 @@ function handleReset() {
     </div>
 </template>
 
-<style scoped></style>
+<!-- styles are handled by Tailwind classes -->
