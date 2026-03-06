@@ -125,9 +125,12 @@ useSwipe(readerEl, {
             :target-reps="settings ? settings.targetReps.value : tikrar.targetReps.value"
             :show-translation="settings?.showTranslation.value !== false"
             :show-page-number="settings?.showPageNumber.value !== false"
+            :is-combined-available="tikrar.isCombinedAvailable.value"
+            :combined-id="tikrar.combinedId.value"
             @block-tapped="setActiveBlock"
             @rep-incremented="tikrar.incrementRep"
-            @block-completed="tikrar.resetBlock"
+            @block-completed="tikrar.nextBlock"
+            @combined-completed="goToPage(pageNumber + 1)"
         />
         <p v-else class="empty">Tidak ada data untuk halaman ini.</p>
     </div>

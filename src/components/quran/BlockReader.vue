@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import type { Ayah, TikrarBlock, TikrarBlockColor } from '../../types/quran';
 import { hapticBlockComplete } from '../../utils/haptic';
 import { formatTranslationText } from '../../utils/translationText';
+import { useToast } from '../../composables/useToast';
 import AyahBlock from './AyahBlock.vue';
 import PageProgress from './PageProgress.vue';
 import TikrarCounter from './TikrarCounter.vue';
@@ -20,6 +21,8 @@ const props = withDefaults(
         targetReps?: number;
         showTranslation?: boolean;
         showPageNumber?: boolean;
+        isCombinedAvailable?: boolean;
+        combinedId?: string;
 
         /**
          * Legacy props (kept for compatibility with current ReaderView).
@@ -40,11 +43,23 @@ const emit = defineEmits<{
     (e: 'block-tapped', blockIndex: number): void;
     (e: 'rep-incremented', blockId: string): void;
     (e: 'block-completed', blockId: string): void;
+    (e: 'combined-completed', combinedId: string): void;
 }>();
+
+const { addToast } = useToast();
 
 function completeBlock(blockId: string): void {
     hapticBlockComplete();
+    const blockIndexMatch = blockId.match(/block-(\d+)/);
+    const blockIndex = blockIndexMatch?.[1] ? parseInt(blockIndexMatch[1], 10) + 1 : 1;
+    addToast(`Blok ${blockIndex} selesai!`, 'success');
     emit('block-completed', blockId);
+}
+
+function completeCombined(combinedId: string): void {
+    hapticBlockComplete();
+    addToast('🌟 Masya Allah! Halaman selesai', 'success');
+    emit('combined-completed', combinedId);
 }
 
 function toEasternArabicDigits(num: number): string {
@@ -196,7 +211,75 @@ const pages = computed(() => {
                 :total-pages="604"
             />
 
-            <div class="mt-4 grid grid-cols-1 gap-3">
+            <div v-if="isCombinedAvailable && combinedId" class="mt-4">
+                <section
+                    class="block-card block-active"
+                    style="background: linear-gradient(135deg, #ecfdf5, #d1fae5); border-color: #059669;"
+                >
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="text-xs font-semibold tracking-widest text-emerald-700 uppercase">
+                                Sesi Gabungan
+                            </p>
+                        </div>
+                        <div v-if="isComplete(combinedId)" class="block-complete-badge">
+                            <svg viewBox="0 0 20 20" fill="currentColor">
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.5 7.57a1 1 0 0 1-1.42.003L3.29 9.78a1 1 0 1 1 1.42-1.41l3.37 3.39 6.79-6.47a1 1 0 0 1 1.414.001Z"
+                                    clip-rule="evenodd"
+                                />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div
+                        class="mt-3 arabic-font leading-loose text-right"
+                        dir="rtl"
+                        :style="{ fontSize: 'var(--arab-font-size, 1.875rem)' }"
+                    >
+                        <span
+                            v-for="ayah in ayahs"
+                            :key="ayah.id"
+                            class="inline"
+                        >
+                            {{ ayah.textArab }}
+                            <span class="mx-1 inline-block align-middle text-base text-emerald-700/80">
+                                {{ verseMarker(ayah.verseNumber) }}
+                            </span>
+                        </span>
+                    </div>
+                    <p
+                        v-if="showTranslation && ayahs.some((a) => a.textIndoTranslation)"
+                        class="mt-4 text-left text-sm text-emerald-800"
+                        dir="ltr"
+                    >
+                        {{ ayahs.map((a) => formatTranslationText(a.textIndoTranslation ?? '')).filter(Boolean).join(' ') }}
+                    </p>
+
+                    <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <TikrarCounter
+                            :block-id="combinedId"
+                            :reps="sessionReps?.[combinedId] ?? 0"
+                            :target-reps="targetReps"
+                            @increment="emit('rep-incremented', combinedId)"
+                            @reset="completeCombined(combinedId)"
+                        />
+
+                        <button
+                            v-if="(sessionReps?.[combinedId] ?? 0) >= (targetReps ?? 20)"
+                            type="button"
+                            class="mark-done-btn"
+                            aria-label="Tandai halaman selesai"
+                            @click.stop="completeCombined(combinedId)"
+                        >
+                            Halaman Selesai
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <div v-else class="mt-4 grid grid-cols-1 gap-3">
                 <section
                     v-for="{ block, ayahs: blockAyahList } in blockAyahs"
                     :key="block.id"
@@ -210,25 +293,19 @@ const pages = computed(() => {
                 >
                     <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0">
-                            <p class="text-xs font-semibold tracking-widest text-slate-600 uppercase">
+                            <p class="text-xs font-semibold tracking-widest text-slate-600 dark:text-slate-300 uppercase">
                                 Blok {{ block.blockIndex + 1 }}
                             </p>
                         </div>
 
-                        <div v-if="isComplete(block.id)" class="absolute right-3 top-3">
-                            <span
-                                class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/70 text-emerald-600 shadow-sm ring-1 ring-emerald-200"
-                                aria-label="Block complete"
-                                title="Complete"
-                            >
-                                <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
-                                    <path
-                                        fill-rule="evenodd"
-                                        d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.5 7.57a1 1 0 0 1-1.42.003L3.29 9.78a1 1 0 1 1 1.42-1.41l3.37 3.39 6.79-6.47a1 1 0 0 1 1.414.001Z"
-                                        clip-rule="evenodd"
-                                    />
-                                </svg>
-                            </span>
+                        <div v-if="isComplete(block.id)" class="block-complete-badge">
+                            <svg viewBox="0 0 20 20" fill="currentColor">
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.5 7.57a1 1 0 0 1-1.42.003L3.29 9.78a1 1 0 1 1 1.42-1.41l3.37 3.39 6.79-6.47a1 1 0 0 1 1.414.001Z"
+                                    clip-rule="evenodd"
+                                />
+                            </svg>
                         </div>
                     </div>
 
@@ -243,14 +320,14 @@ const pages = computed(() => {
                             class="inline"
                         >
                             {{ ayah.textArab }}
-                            <span class="mx-1 inline-block align-middle text-base text-slate-600/90">
+                            <span class="mx-1 inline-block align-middle text-base text-slate-600/90 dark:text-slate-300/90">
                                 {{ verseMarker(ayah.verseNumber) }}
                             </span>
                         </span>
                     </div>
                     <p
                         v-if="showTranslation && blockAyahList.some((a) => a.textIndoTranslation)"
-                        class="mt-2 text-left text-sm text-slate-500"
+                        class="mt-2 text-left text-sm text-slate-500 dark:text-slate-400"
                         dir="ltr"
                     >
                         {{ blockAyahList.map((a) => formatTranslationText(a.textIndoTranslation ?? '')).filter(Boolean).join(' ') }}
@@ -325,7 +402,7 @@ const pages = computed(() => {
 
 <style scoped>
 .arabic-font {
-    font-family: 'Uthmanic Hafs', 'Scheherazade New', serif;
+    font-family: 'Amiri', 'Uthmanic Hafs', 'Scheherazade New', serif;
 }
 
 .block-card {
@@ -408,14 +485,37 @@ const pages = computed(() => {
 .block {
     margin-bottom: 0.5rem;
 }
+.block-complete-badge {
+    position: absolute;
+    right: 0.75rem;
+    top: 0.75rem;
+    display: inline-flex;
+    height: 1.75rem;
+    width: 1.75rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background-color: rgba(255, 255, 255, 0.7);
+    color: #059669;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+.block-complete-badge svg {
+    height: 1rem;
+    width: 1rem;
+}
+:deep(.dark) .block-complete-badge {
+    background-color: rgba(0, 0, 0, 0.5);
+    border-color: rgba(16, 185, 129, 0.4);
+}
 
 /* Dark mode block colors */
-:deep(.dark) .bg-yellow-50 { background-color: rgb(113 63 18); }
-:deep(.dark) .border-yellow-400 { border-color: rgb(202 138 4); }
-:deep(.dark) .bg-green-50 { background-color: rgb(20 83 45); }
-:deep(.dark) .border-green-400 { border-color: rgb(74 222 128); }
-:deep(.dark) .bg-blue-50 { background-color: rgb(30 58 138); }
-:deep(.dark) .border-blue-400 { border-color: rgb(96 165 250); }
-:deep(.dark) .bg-orange-50 { background-color: rgb(124 45 18); }
-:deep(.dark) .border-orange-400 { border-color: rgb(251 146 60); }
+:deep(.dark) .bg-yellow-50 { background-color: #23211f; }
+:deep(.dark) .border-yellow-400 { border-color: #46433e; }
+:deep(.dark) .bg-green-50 { background-color: #153A2D; }
+:deep(.dark) .border-green-400 { border-color: #2C6E55; }
+:deep(.dark) .bg-blue-50 { background-color: #1C2638; }
+:deep(.dark) .border-blue-400 { border-color: #3A4E6B; }
+:deep(.dark) .bg-orange-50 { background-color: #3D241C; }
+:deep(.dark) .border-orange-400 { border-color: #663B2B; }
 </style>
