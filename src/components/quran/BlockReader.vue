@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { Ayah, TikrarBlock, TikrarBlockColor } from '../../types/quran';
+import { hapticBlockComplete } from '../../utils/haptic';
+import { formatTranslationText } from '../../utils/translationText';
 import AyahBlock from './AyahBlock.vue';
 import PageProgress from './PageProgress.vue';
 import TikrarCounter from './TikrarCounter.vue';
@@ -16,6 +18,8 @@ const props = withDefaults(
         activeBlockIndex?: number;
         sessionReps?: Record<string, number>;
         targetReps?: number;
+        showTranslation?: boolean;
+        showPageNumber?: boolean;
 
         /**
          * Legacy props (kept for compatibility with current ReaderView).
@@ -27,6 +31,8 @@ const props = withDefaults(
         activeBlockIndex: 0,
         sessionReps: () => ({}),
         targetReps: 20,
+        showTranslation: true,
+        showPageNumber: true,
     }
 );
 
@@ -35,6 +41,11 @@ const emit = defineEmits<{
     (e: 'rep-incremented', blockId: string): void;
     (e: 'block-completed', blockId: string): void;
 }>();
+
+function completeBlock(blockId: string): void {
+    hapticBlockComplete();
+    emit('block-completed', blockId);
+}
 
 function toEasternArabicDigits(num: number): string {
     const map: Record<string, string> = {
@@ -56,7 +67,7 @@ function toEasternArabicDigits(num: number): string {
 }
 
 function verseMarker(verseNumber: number): string {
-    return `﴾${toEasternArabicDigits(verseNumber)}﴿`;
+    return `﴿${toEasternArabicDigits(verseNumber)}﴾`;
 }
 
 const effectivePageNumber = computed(() => props.pageNumber ?? props.currentPage ?? null);
@@ -180,6 +191,7 @@ const pages = computed(() => {
         <!-- New block UI (preferred) -->
         <div v-if="isBlockMode" class="px-4 pb-24 pt-4">
             <PageProgress
+                v-if="showPageNumber"
                 :page="effectivePageNumber ?? 1"
                 :total-pages="604"
             />
@@ -188,11 +200,11 @@ const pages = computed(() => {
                 <section
                     v-for="{ block, ayahs: blockAyahList } in blockAyahs"
                     :key="block.id"
-                    class="relative origin-center cursor-pointer rounded-xl border border-slate-200 border-l-4 p-4 transition will-change-transform"
+                    class="block-card"
                     :class="[
                         blockColorClasses(block.blockIndex),
-                        isActive(block.blockIndex) ? 'border-l-8 shadow-lg scale-[1.01]' : 'shadow-sm',
-                        isComplete(block.id) ? 'opacity-70' : '',
+                        isActive(block.blockIndex) ? 'block-active' : '',
+                        isComplete(block.id) ? 'block-completed' : '',
                     ]"
                     @click="emit('block-tapped', block.blockIndex)"
                 >
@@ -221,8 +233,9 @@ const pages = computed(() => {
                     </div>
 
                     <div
-                        class="mt-3 arabic-font text-2xl leading-loose text-right"
+                        class="mt-3 arabic-font leading-loose text-right"
                         dir="rtl"
+                        :style="{ fontSize: 'var(--arab-font-size, 1.875rem)' }"
                     >
                         <span
                             v-for="ayah in blockAyahList"
@@ -235,6 +248,13 @@ const pages = computed(() => {
                             </span>
                         </span>
                     </div>
+                    <p
+                        v-if="showTranslation && blockAyahList.some((a) => a.textIndoTranslation)"
+                        class="mt-2 text-left text-sm text-slate-500"
+                        dir="ltr"
+                    >
+                        {{ blockAyahList.map((a) => formatTranslationText(a.textIndoTranslation ?? '')).filter(Boolean).join(' ') }}
+                    </p>
 
                     <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <TikrarCounter
@@ -242,14 +262,15 @@ const pages = computed(() => {
                             :reps="sessionReps?.[block.id] ?? 0"
                             :target-reps="targetReps"
                             @increment="emit('rep-incremented', block.id)"
-                            @reset="emit('block-completed', block.id)"
+                            @reset="completeBlock(block.id)"
                         />
 
                         <button
                             v-if="(sessionReps?.[block.id] ?? 0) >= (targetReps ?? 20)"
                             type="button"
-                            class="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition active:scale-[0.99]"
-                            @click.stop="emit('block-completed', block.id)"
+                            class="mark-done-btn"
+                            aria-label="Tandai blok selesai"
+                            @click.stop="completeBlock(block.id)"
                         >
                             Tandai Selesai
                         </button>
@@ -306,6 +327,78 @@ const pages = computed(() => {
 .arabic-font {
     font-family: 'Uthmanic Hafs', 'Scheherazade New', serif;
 }
+
+.block-card {
+    position: relative;
+    cursor: pointer;
+    border-radius: 0.75rem;
+    border-width: 1px 1px 1px 4px;
+    padding: 1rem;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease, border-color 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .block-card {
+        transition-duration: 0.05s;
+    }
+}
+
+.block-card.block-active {
+    border-left-width: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    transform: scale(1.01);
+}
+
+.block-card.block-active:not(.block-completed) {
+    animation: block-slide-up 0.35s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .block-card.block-active:not(.block-completed) {
+        animation: none;
+    }
+}
+
+@keyframes block-slide-up {
+    from {
+        opacity: 0.85;
+        transform: translateY(12px) scale(1);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1.01);
+    }
+}
+
+.block-card.block-completed {
+    opacity: 0.55;
+    transform: translateY(4px) scale(1);
+}
+
+.mark-done-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    background: #059669;
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.mark-done-btn:active {
+    transform: scale(0.99);
+}
+@media (prefers-reduced-motion: reduce) {
+    .mark-done-btn {
+        transition: none;
+    }
+}
 .block-reader {
     padding: 1rem 0;
 }
@@ -315,4 +408,14 @@ const pages = computed(() => {
 .block {
     margin-bottom: 0.5rem;
 }
+
+/* Dark mode block colors */
+:deep(.dark) .bg-yellow-50 { background-color: rgb(113 63 18); }
+:deep(.dark) .border-yellow-400 { border-color: rgb(202 138 4); }
+:deep(.dark) .bg-green-50 { background-color: rgb(20 83 45); }
+:deep(.dark) .border-green-400 { border-color: rgb(74 222 128); }
+:deep(.dark) .bg-blue-50 { background-color: rgb(30 58 138); }
+:deep(.dark) .border-blue-400 { border-color: rgb(96 165 250); }
+:deep(.dark) .bg-orange-50 { background-color: rgb(124 45 18); }
+:deep(.dark) .border-orange-400 { border-color: rgb(251 146 60); }
 </style>
