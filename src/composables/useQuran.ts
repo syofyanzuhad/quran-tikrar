@@ -1,100 +1,68 @@
-import { ref, computed } from 'vue';
-import axios from 'axios';
+import { ref, type Ref } from 'vue';
 import { db } from '../db';
-import { seedSurahAyahs } from '../db/seed';
-import type { Surah, Ayah } from '../types/quran';
-
-const QURAN_API_BASE = 'https://api.alquran.cloud/v1';
+import {
+    checkIfSeeded,
+    seedSurahs,
+    seedAllPages,
+} from '../db/seed';
+import type { Surah, Ayah, TikrarBlock } from '../types/quran';
 
 /**
- * Composable for fetching and caching Quran data (surahs + ayahs).
+ * Composable for Quran data: seed from API and read from IndexedDB.
  */
-export function useQuran() {
-    const loading = ref(false);
-    const error = ref<string | null>(null);
+export function useQuran(): {
+    isLoading: Ref<boolean>;
+    seedProgress: Ref<number>;
+    initializeDatabase: () => Promise<void>;
+    getSurahList: () => Promise<Surah[]>;
+    getPageData: (page: number) => Promise<{ ayahs: Ayah[]; blocks: TikrarBlock[] }>;
+    getAyahsBySurah: (surahId: number) => Promise<Ayah[]>;
+} {
+    const isLoading = ref(false);
+    const seedProgress = ref(0);
 
-    const surahs = ref<Surah[]>([]);
-
-    async function fetchSurahList(): Promise<Surah[]> {
-        loading.value = true;
-        error.value = null;
+    async function initializeDatabase(): Promise<void> {
+        isLoading.value = true;
+        seedProgress.value = 0;
         try {
-            const cached = await db.surahs.orderBy('number').toArray();
-            if (cached.length > 0) {
-                surahs.value = cached.map((c) => ({
-                    number: c.number,
-                    name: c.name,
-                    englishName: c.englishName,
-                    englishNameTranslation: c.englishNameTranslation,
-                    revelationType: c.revelationType,
-                    numberOfAyahs: c.numberOfAyahs,
-                }));
-                return surahs.value;
+            const seeded = await checkIfSeeded();
+            if (!seeded) {
+                await seedSurahs();
+                await seedAllPages((percent: number) => {
+                    seedProgress.value = percent;
+                });
             }
-            const { data } = await axios.get<{ data: Surah[] }>(`${QURAN_API_BASE}/surah`);
-            const list = data.data ?? [];
-            surahs.value = list;
-            await db.surahs.clear();
-            for (const s of list) {
-                await db.surahs.add({ ...s, cachedAt: Date.now() });
-            }
-            return list;
-        } catch (e) {
-            error.value = e instanceof Error ? e.message : 'Failed to fetch surah list';
-            return [];
+            seedProgress.value = 100;
         } finally {
-            loading.value = false;
+            isLoading.value = false;
         }
     }
 
-    async function fetchAyahs(surahNumber: number): Promise<Ayah[]> {
-        loading.value = true;
-        error.value = null;
-        try {
-            const cached = await db.ayahs.where('surahNumber').equals(surahNumber).toArray();
-            if (cached.length > 0) {
-                return cached
-                    .sort((a, b) => a.numberInSurah - b.numberInSurah)
-                    .map((c) => ({
-                        number: c.number,
-                        text: c.text,
-                        numberInSurah: c.numberInSurah,
-                        juz: c.juz,
-                        manzil: c.manzil,
-                        page: c.page,
-                        ruku: c.ruku,
-                        hizbQuarter: c.hizbQuarter,
-                        sajda: c.sajda,
-                    }));
-            }
-            await seedSurahAyahs(surahNumber);
-            const fresh = await db.ayahs.where('surahNumber').equals(surahNumber).toArray();
-            return fresh
-                .sort((a, b) => a.numberInSurah - b.numberInSurah)
-                .map((c) => ({
-                    number: c.number,
-                    text: c.text,
-                    numberInSurah: c.numberInSurah,
-                    juz: c.juz,
-                    manzil: c.manzil,
-                    page: c.page,
-                    ruku: c.ruku,
-                    hizbQuarter: c.hizbQuarter,
-                    sajda: c.sajda,
-                }));
-        } catch (e) {
-            error.value = e instanceof Error ? e.message : 'Failed to fetch ayahs';
-            return [];
-        } finally {
-            loading.value = false;
-        }
+    async function getSurahList(): Promise<Surah[]> {
+        const list = await db.surahs.orderBy('id').toArray();
+        return list;
+    }
+
+    async function getPageData(
+        page: number
+    ): Promise<{ ayahs: Ayah[]; blocks: TikrarBlock[] }> {
+        const [ayahs, blocks] = await Promise.all([
+            db.getPageAyahs(page),
+            db.getPageBlocks(page),
+        ]);
+        return { ayahs, blocks };
+    }
+
+    async function getAyahsBySurah(surahId: number): Promise<Ayah[]> {
+        return db.ayahs.where('surahId').equals(surahId).sortBy('verseNumber');
     }
 
     return {
-        loading: computed(() => loading.value),
-        error: computed(() => error.value),
-        surahs: computed(() => surahs.value),
-        fetchSurahList,
-        fetchAyahs,
+        isLoading,
+        seedProgress,
+        initializeDatabase,
+        getSurahList,
+        getPageData,
+        getAyahsBySurah,
     };
 }

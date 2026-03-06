@@ -26,8 +26,8 @@ watch(surahNumber, (num) => {
 <template>
     <div class="reader-view">
         <header class="header" v-if="currentSurah">
-            <h1 class="title">{{ currentSurah.englishName }}</h1>
-            <p class="meta">{{ currentSurah.name }} · {{ currentSurah.numberOfAyahs }} ayahs</p>
+            <h1 class="title">{{ currentSurah.nameSimple }}</h1>
+            <p class="meta">{{ currentSurah.nameArabic }} · {{ currentSurah.versesCount }} ayahs</p>
         </header>
 
         <LoadingSpinner
@@ -38,7 +38,7 @@ watch(surahNumber, (num) => {
         <BlockReader
             v-else-if="currentAyahs.length > 0"
             :ayahs="currentAyahs"
-            :surah-number="surahNumber"
+            :surah-id="surahNumber"
         />
         <p v-else class="empty">No ayahs loaded.</p>
     </div>

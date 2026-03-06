@@ -17,8 +17,8 @@ onMounted(async () => {
     }
 });
 
-function openReader(surahNumber: number) {
-    router.push({ name: 'reader', params: { surahNumber } });
+function openReader(surahId: number) {
+    router.push({ name: 'reader', params: { surahNumber: String(surahId) } });
 }
 </script>
 
@@ -46,18 +46,18 @@ function openReader(surahNumber: number) {
         >
             <li
                 v-for="surah in surahs"
-                :key="surah.number"
+                :key="surah.id"
                 class="surah-item"
             >
                 <button
                     type="button"
                     class="surah-btn"
-                    @click="openReader(surah.number)"
+                    @click="openReader(surah.id)"
                 >
-                    <span class="num">{{ surah.number }}</span>
-                    <span class="name">{{ surah.englishName }}</span>
-                    <span class="arabic">{{ surah.name }}</span>
-                    <span class="ayahs">{{ surah.numberOfAyahs }} ayahs</span>
+                    <span class="num">{{ surah.id }}</span>
+                    <span class="name">{{ surah.nameSimple }}</span>
+                    <span class="arabic">{{ surah.nameArabic }}</span>
+                    <span class="ayahs">{{ surah.versesCount }} ayahs</span>
                 </button>
             </li>
         </ul>

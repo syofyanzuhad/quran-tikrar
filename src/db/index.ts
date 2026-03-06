@@ -55,6 +55,20 @@ export class QuranDatabase extends Dexie {
     }
 
     /**
+     * Get tikrar blocks for a mushaf page (1-604).
+     */
+    async getPageBlocks(page: number): Promise<TikrarBlock[]> {
+        return this.tikrarBlocks.where('pageNumber').equals(page).sortBy('blockIndex');
+    }
+
+    /**
+     * Get all ayahs for a surah (by surah id).
+     */
+    async getAyahsBySurah(surahId: number): Promise<Ayah[]> {
+        return this.ayahs.where('surahId').equals(surahId).sortBy('verseNumber');
+    }
+
+    /**
      * Get hafalan progress for a page. Returns undefined if not found.
      */
     async getProgress(pageNum: number): Promise<HafalanProgress | undefined> {

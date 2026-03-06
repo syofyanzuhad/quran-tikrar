@@ -5,11 +5,11 @@ import TikrarCounter from './TikrarCounter.vue';
 
 const props = defineProps<{
     ayah: Ayah;
-    surahNumber: number;
+    surahId: number;
     highlight?: boolean;
 }>();
 
-const ayahNumber = computed(() => props.ayah.numberInSurah);
+const verseNumber = computed(() => props.ayah.verseNumber);
 </script>
 
 <template>
@@ -18,12 +18,13 @@ const ayahNumber = computed(() => props.ayah.numberInSurah);
         :class="{ highlight: highlight }"
     >
         <div class="ayah-content">
-            <span class="ayah-num">{{ ayahNumber }}</span>
-            <span class="ayah-text">{{ ayah.text }}</span>
+            <span class="ayah-num">{{ verseNumber }}</span>
+            <span class="ayah-text">{{ ayah.textArab }}</span>
         </div>
+        <p v-if="ayah.textIndoTranslation" class="ayah-translation">{{ ayah.textIndoTranslation }}</p>
         <TikrarCounter
-            :surah-number="surahNumber"
-            :ayah-number="ayahNumber"
+            :surah-number="surahId"
+            :ayah-number="verseNumber"
         />
     </div>
 </template>
@@ -63,5 +64,12 @@ const ayahNumber = computed(() => props.ayah.numberInSurah);
     flex: 1;
     font-size: 1.125rem;
     line-height: 1.7;
+}
+.ayah-translation {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.875rem;
+    color: var(--muted, #64748b);
+    direction: ltr;
+    text-align: left;
 }
 </style>

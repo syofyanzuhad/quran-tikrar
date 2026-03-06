@@ -6,7 +6,7 @@ import PageProgress from './PageProgress.vue';
 
 const props = defineProps<{
     ayahs: Ayah[];
-    surahNumber: number;
+    surahId: number;
     currentPage?: number;
 }>();
 
@@ -36,12 +36,12 @@ const currentPageAyahs = computed(() => {
             />
             <div
                 v-for="ayah in currentPageAyahs"
-                :key="ayah.number"
+                :key="ayah.id"
                 class="block"
             >
                 <AyahBlock
                     :ayah="ayah"
-                    :surah-number="surahNumber"
+                    :surah-id="surahId"
                 />
             </div>
         </template>
@@ -57,12 +57,12 @@ const currentPageAyahs = computed(() => {
                 />
                 <div
                     v-for="ayah in pageAyahs"
-                    :key="ayah.number"
+                    :key="ayah.id"
                     class="block"
                 >
                     <AyahBlock
                         :ayah="ayah"
-                        :surah-number="surahNumber"
+                        :surah-id="surahId"
                     />
                 </div>
             </div>

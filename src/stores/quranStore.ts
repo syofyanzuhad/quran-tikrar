@@ -4,23 +4,40 @@ import type { Surah, Ayah } from '../types/quran';
 import { useQuran } from '../composables/useQuran';
 
 export const useQuranStore = defineStore('quran', () => {
-    const { fetchSurahList, fetchAyahs, loading, error } = useQuran();
+    const {
+        isLoading,
+        getSurahList,
+        getAyahsBySurah,
+    } = useQuran();
 
     const surahs = ref<Surah[]>([]);
     const currentSurah = ref<Surah | null>(null);
     const currentAyahs = ref<Ayah[]>([]);
+    const error = ref<string | null>(null);
 
     async function loadSurahList() {
-        const list = await fetchSurahList();
-        surahs.value = list;
-        return list;
+        error.value = null;
+        try {
+            const list = await getSurahList();
+            surahs.value = list;
+            return list;
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Failed to load surah list';
+            return [];
+        }
     }
 
-    async function loadSurah(number: number) {
-        const list = await fetchSurahList();
-        currentSurah.value = list.find((s) => s.number === number) ?? null;
-        currentAyahs.value = await fetchAyahs(number);
-        return currentAyahs.value;
+    async function loadSurah(surahId: number) {
+        error.value = null;
+        try {
+            const list = await getSurahList();
+            currentSurah.value = list.find((s: Surah) => s.id === surahId) ?? null;
+            currentAyahs.value = await getAyahsBySurah(surahId);
+            return currentAyahs.value;
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Failed to load surah';
+            return [];
+        }
     }
 
     function clearCurrent() {
@@ -29,8 +46,8 @@ export const useQuranStore = defineStore('quran', () => {
     }
 
     return {
-        loading,
-        error,
+        loading: isLoading,
+        error: computed(() => error.value),
         surahs: computed(() => surahs.value),
         currentSurah: computed(() => currentSurah.value),
         currentAyahs: computed(() => currentAyahs.value),
