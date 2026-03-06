@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useProgressStore } from '../stores/progressStore';
-import { useTikrar } from '../composables/useTikrar';
+import { useAyahTikrar } from '../composables/useTikrar';
 import PageProgress from '../components/quran/PageProgress.vue';
 
 const progressStore = useProgressStore();
-const { totalTikrarCount } = useTikrar();
+const { totalTikrarCount } = useAyahTikrar();
 
 const records = computed(() => progressStore.records);
 const completedPages = computed(() => progressStore.completedPages);

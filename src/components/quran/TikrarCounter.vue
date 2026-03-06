@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useTikrar } from '../../composables/useTikrar';
+import { useAyahTikrar } from '../../composables/useTikrar';
 
 const props = defineProps<{
     surahNumber: number;
     ayahNumber: number;
 }>();
 
-const { getCount, increment, reset } = useTikrar();
+const { getCount, increment, reset } = useAyahTikrar();
 
 const count = computed(() => getCount(props.surahNumber, props.ayahNumber));
 
