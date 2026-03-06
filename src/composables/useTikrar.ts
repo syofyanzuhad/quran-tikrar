@@ -1,4 +1,4 @@
-import { computed, ref, type Ref } from 'vue';
+import { computed, ref, watch, type Ref } from 'vue';
 import mitt, { type Emitter } from 'mitt';
 import { db, type StoredTikrarSession } from '../db';
 import type { Ayah, HafalanProgress, TikrarBlock } from '../types/quran';
@@ -100,6 +100,30 @@ export function useTikrar(): UseTikrarReturn {
     const targetReps = ref<number>(DEFAULT_TARGET_REPS);
     const mode = ref<TikrarMode>('single');
 
+    // Persist active reps dynamically to DB
+    let isHydrating = true;
+    db.meta.get('tikrar-in-progress').then((saved) => {
+        if (saved?.value) {
+            sessionReps.value = saved.value;
+        }
+        isHydrating = false;
+    });
+
+    watch(sessionReps, async (newReps) => {
+        if (isHydrating) return;
+        
+        // Remove completed blocks from the cache so it doesn't grow infinitely large
+        const activeReps = { ...newReps };
+        Object.keys(activeReps).forEach(key => {
+            const currentRep = activeReps[key];
+            if (currentRep !== undefined && currentRep >= targetReps.value) {
+                delete activeReps[key];
+            }
+        });
+
+        await db.meta.put({ key: 'tikrar-in-progress', value: activeReps });
+    }, { deep: true });
+
     const emitter: Emitter<TikrarEvents> = mitt<TikrarEvents>();
 
     const blocks = ref<TikrarBlock[]>([]);
@@ -132,7 +156,9 @@ export function useTikrar(): UseTikrarReturn {
     }
 
     function resetBlock(blockId: string): void {
-        sessionReps.value = { ...sessionReps.value, [blockId]: 0 };
+        const next = { ...sessionReps.value };
+        delete next[blockId];
+        sessionReps.value = next;
     }
 
     async function ensurePageLoaded(pageNumber: number): Promise<void> {
@@ -204,7 +230,7 @@ export function useTikrar(): UseTikrarReturn {
     function startSession(pageNumber: number): void {
         currentPage.value = pageNumber;
         currentBlockIndex.value = 0;
-        sessionReps.value = {};
+        // Don't wipe sessionReps here, otherwise navigating naturally deletes cache
         void ensurePageLoaded(pageNumber);
         void upsertHafalanProgress();
     }
