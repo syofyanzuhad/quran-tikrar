@@ -1,158 +1,370 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useProgressStore } from '../stores/progressStore';
-import { useAyahTikrar } from '../composables/useTikrar';
-import PageProgress from '../components/quran/PageProgress.vue';
+import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useTransition } from '@vueuse/core';
+import { db, type StoredHafalanProgress } from '../db';
+import { useProgress, type JuzProgress } from '../composables/useProgress';
+import type { HafalanProgress, Surah } from '../types/quran';
 
-const progressStore = useProgressStore();
-const { totalTikrarCount } = useAyahTikrar();
+const router = useRouter();
+const {
+    getOverallProgress,
+    getJuzProgress,
+    getRecentActivity,
+    getStreakDays,
+    getTodayReps,
+} = useProgress();
 
-const records = computed(() => progressStore.records);
-const completedPages = computed(() => progressStore.completedPages);
-const totalPagesCompleted = computed(() => progressStore.totalPagesCompleted);
+type Overall = { totalPages: number; completedPages: number; percentage: number };
 
-function clearProgress() {
-    progressStore.clearRecords();
+const loading = ref(true);
+const overall = ref<Overall>({ totalPages: 604, completedPages: 0, percentage: 0 });
+const streakDays = ref(0);
+const todayReps = ref(0);
+const recent = ref<HafalanProgress[]>([]);
+const surahById = ref<Record<number, Surah>>({});
+
+const completedPagesAnimated = useTransition(
+    computed(() => overall.value.completedPages),
+    { duration: 600 }
+);
+const percentageAnimated = useTransition(
+    computed(() => overall.value.percentage),
+    { duration: 600 }
+);
+
+type JuzTile = {
+    juzNumber: number;
+    status: 'not_started' | 'in_progress' | 'completed';
+    percentage: number;
+};
+const juzTiles = ref<JuzTile[]>(
+    Array.from({ length: 30 }, (_, i) => ({
+        juzNumber: i + 1,
+        status: 'not_started',
+        percentage: 0,
+    }))
+);
+const selectedJuz = ref<number | null>(null);
+const selectedJuzProgress = ref<JuzProgress | null>(null);
+
+type HeatmapCell = {
+    dateKey: string;
+    date: Date;
+    count: number;
+};
+const heatmap = ref<HeatmapCell[][]>([]);
+const maxHeat = computed(() => {
+    let max = 0;
+    for (const week of heatmap.value) {
+        for (const cell of week) max = Math.max(max, cell.count);
+    }
+    return max;
+});
+
+function heatClass(count: number): string {
+    if (count <= 0) return 'bg-slate-100';
+    if (maxHeat.value <= 1) return 'bg-emerald-300';
+    const ratio = count / maxHeat.value;
+    if (ratio <= 0.25) return 'bg-emerald-100';
+    if (ratio <= 0.5) return 'bg-emerald-200';
+    if (ratio <= 0.75) return 'bg-emerald-300';
+    return 'bg-emerald-400';
 }
+
+function dateOnlyKey(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+async function loadSurahs(ids: number[]): Promise<void> {
+    const uniq = Array.from(new Set(ids)).filter((id) => id > 0);
+    if (uniq.length === 0) return;
+    const rows = await Promise.all(uniq.map((id) => db.surahs.get(id)));
+    const map: Record<number, Surah> = { ...surahById.value };
+    for (const s of rows) {
+        if (s) map[s.id] = s;
+    }
+    surahById.value = map;
+}
+
+function goToProgressItem(p: HafalanProgress): void {
+    router.push({
+        name: 'reader',
+        params: { surahNumber: String(p.surahId || 1) },
+        query: { page: String(p.pageNumber) },
+    });
+}
+
+async function openJuz(juzNumber: number): Promise<void> {
+    selectedJuz.value = juzNumber;
+    selectedJuzProgress.value = await getJuzProgress(juzNumber);
+    await loadSurahs(selectedJuzProgress.value.pages.map((p) => p.surahId));
+}
+
+function closeJuz(): void {
+    selectedJuz.value = null;
+    selectedJuzProgress.value = null;
+}
+
+async function buildHeatmap(): Promise<void> {
+    const rows = await db.hafalanProgress.toArray();
+    const list = rows as unknown as StoredHafalanProgress[];
+    const counts = new Map<string, number>();
+    for (const r of list) {
+        const key = dateOnlyKey(new Date(r.lastStudiedAt));
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+
+    const today = new Date();
+    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 83);
+    const weeks: HeatmapCell[][] = [];
+    for (let w = 0; w < 12; w++) {
+        const week: HeatmapCell[] = [];
+        for (let d = 0; d < 7; d++) {
+            const idx = w * 7 + d;
+            const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + idx);
+            const key = dateOnlyKey(date);
+            week.push({ dateKey: key, date, count: counts.get(key) ?? 0 });
+        }
+        weeks.push(week);
+    }
+    heatmap.value = weeks;
+}
+
+onMounted(async () => {
+    loading.value = true;
+    try {
+        const [o, streak, reps, recentActivity] = await Promise.all([
+            getOverallProgress(),
+            getStreakDays(),
+            getTodayReps(),
+            getRecentActivity(5),
+        ]);
+        overall.value = o;
+        streakDays.value = streak;
+        todayReps.value = reps;
+        recent.value = recentActivity;
+        await loadSurahs(recentActivity.map((r) => r.surahId));
+
+        const tiles = await Promise.all(
+            Array.from({ length: 30 }, (_, i) => getJuzProgress(i + 1))
+        );
+        juzTiles.value = tiles.map((t) => ({
+            juzNumber: t.juzNumber,
+            status: t.status,
+            percentage: t.percentage,
+        }));
+
+        await buildHeatmap();
+    } finally {
+        loading.value = false;
+    }
+});
 </script>
 
 <template>
-    <div class="progress-view">
-        <header class="header">
-            <h1>Progress</h1>
-            <p class="subtitle">Memorization & tikrar summary</p>
+    <div class="px-4 pb-24 pt-4">
+        <header class="mb-4">
+            <h1 class="text-xl font-extrabold tracking-tight text-slate-900">Progress</h1>
+            <p class="mt-1 text-sm text-slate-500">Tracking hafalan with Tikrar (offline)</p>
         </header>
 
-        <section class="stats">
-            <div class="stat-card">
-                <span class="stat-value">{{ totalPagesCompleted }}</span>
-                <span class="stat-label">Pages completed</span>
+        <!-- Section 1: Summary -->
+        <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="flex items-start justify-between gap-4">
+                <div class="min-w-0">
+                    <p class="text-sm font-semibold text-slate-600">Ringkasan</p>
+                    <p class="mt-1 text-2xl font-extrabold tabular-nums text-slate-900">
+                        {{ Math.round(completedPagesAnimated) }} dari 604 Halaman
+                    </p>
+                    <p class="mt-1 text-sm text-slate-500">
+                        {{ percentageAnimated.toFixed(1) }}%
+                    </p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm font-semibold text-slate-600">Streak</p>
+                    <p class="mt-1 text-lg font-bold tabular-nums text-slate-900">
+                        🔥 {{ streakDays }} Hari Berturut-turut
+                    </p>
+                    <p class="mt-2 text-sm text-slate-500">
+                        Total pengulangan hari ini:
+                        <span class="font-semibold tabular-nums text-slate-900">{{ todayReps }}</span>
+                    </p>
+                </div>
             </div>
-            <div class="stat-card">
-                <span class="stat-value">{{ totalTikrarCount }}</span>
-                <span class="stat-label">Total tikrar</span>
-            </div>
-        </section>
 
-        <section v-if="completedPages.length > 0" class="pages-section">
-            <h2>Completed pages</h2>
-            <div class="pages-list">
-                <PageProgress
-                    v-for="p in completedPages"
-                    :key="p"
-                    :page="p"
-                    :total-pages="604"
+            <div class="mt-4 h-3 w-full overflow-hidden rounded-full bg-slate-100">
+                <div
+                    class="h-3 rounded-full bg-emerald-600 transition-[width] duration-700"
+                    :style="{ width: `${Math.min(100, Math.max(0, overall.percentage))}%` }"
                 />
             </div>
         </section>
 
-        <section v-if="records.length > 0" class="records-section">
-            <h2>Recent records</h2>
-            <ul class="records-list">
-                <li
-                    v-for="(r, i) in records.slice(-10).reverse()"
-                    :key="String(r.page) + '-' + r.ayahFrom + '-' + r.ayahTo + '-' + i"
-                    class="record-item"
+        <!-- Section 2: Juz grid -->
+        <section class="mt-6">
+            <div class="mb-2 flex items-end justify-between gap-3">
+                <h2 class="text-sm font-semibold tracking-wide text-slate-600 uppercase">
+                    Progress per Juz
+                </h2>
+                <p class="text-xs text-slate-500">Tap untuk detail</p>
+            </div>
+
+            <div class="grid grid-cols-6 gap-2">
+                <button
+                    v-for="tile in juzTiles"
+                    :key="tile.juzNumber"
+                    type="button"
+                    class="relative aspect-square rounded-lg border border-slate-200 text-sm font-bold text-slate-900 shadow-sm transition active:scale-[0.98]"
+                    :class="[
+                        tile.status === 'completed'
+                            ? 'bg-emerald-200'
+                            : tile.status === 'in_progress'
+                              ? 'bg-yellow-100'
+                              : 'bg-slate-100',
+                    ]"
+                    @click="openJuz(tile.juzNumber)"
                 >
-                    Surah {{ r.surahNumber }} · Page {{ r.page }} · {{ r.ayahFrom }}-{{ r.ayahTo }}
-                </li>
-            </ul>
+                    <span class="absolute left-2 top-2 text-xs font-semibold text-slate-600">
+                        {{ tile.juzNumber }}
+                    </span>
+                    <span class="sr-only">Juz {{ tile.juzNumber }}</span>
+                    <span class="absolute bottom-2 right-2 text-[10px] font-semibold text-slate-600">
+                        {{ tile.percentage.toFixed(0) }}%
+                    </span>
+                </button>
+            </div>
         </section>
 
-        <button
-            v-if="records.length > 0"
-            type="button"
-            class="btn-clear"
-            @click="clearProgress"
-        >
-            Clear progress
-        </button>
+        <!-- Section 3: Recent pages -->
+        <section class="mt-6">
+            <div class="mb-2 flex items-end justify-between gap-3">
+                <h2 class="text-sm font-semibold tracking-wide text-slate-600 uppercase">
+                    Halaman Terakhir Dipelajari
+                </h2>
+                <p class="text-xs text-slate-500">5 terakhir</p>
+            </div>
 
-        <p v-if="records.length === 0 && completedPages.length === 0" class="empty">
-            No progress yet. Start reading from Home.
-        </p>
+            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div v-if="recent.length === 0" class="p-4 text-sm text-slate-500">
+                    Belum ada aktivitas.
+                </div>
+                <ul v-else class="divide-y divide-slate-200">
+                    <li v-for="p in recent" :key="p.id" class="flex items-center justify-between gap-3 p-4">
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-semibold text-slate-900">
+                                Page {{ p.pageNumber }} · {{ surahById[p.surahId]?.nameSimple ?? `Surah ${p.surahId}` }}
+                            </p>
+                            <p class="mt-1 text-xs text-slate-500">
+                                {{ new Date(p.lastStudiedAt).toLocaleString() }} · reps:
+                                <span class="font-semibold tabular-nums text-slate-700">{{ p.totalReps }}</span>
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            class="shrink-0 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition active:scale-[0.99]"
+                            @click="goToProgressItem(p)"
+                        >
+                            Lanjut
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Section 4: Heatmap -->
+        <section class="mt-6">
+            <div class="mb-2 flex items-end justify-between gap-3">
+                <h2 class="text-sm font-semibold tracking-wide text-slate-600 uppercase">
+                    Kalender Aktivitas
+                </h2>
+                <p class="text-xs text-slate-500">84 hari terakhir</p>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div class="grid grid-cols-7 gap-2">
+                    <template v-for="(week, w) in heatmap" :key="w">
+                        <div
+                            v-for="cell in week"
+                            :key="cell.dateKey"
+                            class="h-4 w-4 rounded-sm transition-colors"
+                            :class="heatClass(cell.count)"
+                            :title="`${cell.date.toDateString()}: ${cell.count} halaman`"
+                        />
+                    </template>
+                </div>
+                <div class="mt-3 flex items-center justify-between text-xs text-slate-500">
+                    <span>Less</span>
+                    <div class="flex items-center gap-1">
+                        <span class="h-3 w-3 rounded-sm bg-slate-100" />
+                        <span class="h-3 w-3 rounded-sm bg-emerald-100" />
+                        <span class="h-3 w-3 rounded-sm bg-emerald-200" />
+                        <span class="h-3 w-3 rounded-sm bg-emerald-300" />
+                        <span class="h-3 w-3 rounded-sm bg-emerald-400" />
+                    </div>
+                    <span>More</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Juz detail drawer -->
+        <div
+            v-if="selectedJuz != null && selectedJuzProgress"
+            class="fixed inset-0 z-50 flex items-end bg-black/40 p-3"
+            @click.self="closeJuz"
+        >
+            <div class="w-full max-w-2xl rounded-2xl bg-white p-4 shadow-xl">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <p class="text-sm font-semibold text-slate-600">Juz {{ selectedJuz }}</p>
+                        <p class="mt-1 text-lg font-bold tabular-nums text-slate-900">
+                            {{ selectedJuzProgress.completedPages }} / {{ selectedJuzProgress.totalPages }} halaman
+                            ({{ selectedJuzProgress.percentage.toFixed(1) }}%)
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        class="rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700"
+                        @click="closeJuz"
+                    >
+                        Tutup
+                    </button>
+                </div>
+
+                <div class="mt-4 max-h-[55vh] overflow-auto rounded-xl border border-slate-200">
+                    <ul class="divide-y divide-slate-200">
+                        <li
+                            v-for="p in selectedJuzProgress.pages"
+                            :key="p.pageNumber"
+                            class="flex items-center justify-between gap-3 p-3"
+                        >
+                            <div class="min-w-0">
+                                <p class="truncate text-sm font-semibold text-slate-900">
+                                    Page {{ p.pageNumber }} · {{ surahById[p.surahId]?.nameSimple ?? `Surah ${p.surahId}` }}
+                                </p>
+                                <p class="mt-1 text-xs text-slate-500">
+                                    {{ p.isCompleted ? 'Selesai' : p.blocksCompleted > 0 ? 'Sedang' : 'Belum' }}
+                                    · reps: <span class="font-semibold tabular-nums">{{ p.totalReps }}</span>
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                class="shrink-0 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white"
+                                @click="router.push({ name: 'reader', params: { surahNumber: String(p.surahId || 1) }, query: { page: String(p.pageNumber) } })"
+                            >
+                                Lanjut
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
 <style scoped>
-.progress-view {
-    padding: 1rem;
-    padding-bottom: 5rem;
-}
-.header {
-    margin-bottom: 1.5rem;
-}
-.header h1 {
-    font-size: 1.5rem;
-    margin: 0 0 0.25rem 0;
-}
-.subtitle {
-    color: var(--muted, #64748b);
-    font-size: 0.875rem;
-    margin: 0;
-}
-.stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-.stat-card {
-    padding: 1rem;
-    background: var(--card-bg, #f8f9fa);
-    border-radius: 0.5rem;
-    text-align: center;
-}
-.stat-value {
-    display: block;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--accent, #0d9488);
-}
-.stat-label {
-    font-size: 0.75rem;
-    color: var(--muted, #64748b);
-}
-.pages-section,
-.records-section {
-    margin-bottom: 1.5rem;
-}
-.pages-section h2,
-.records-section h2 {
-    font-size: 0.875rem;
-    margin: 0 0 0.5rem 0;
-    color: var(--muted, #64748b);
-}
-.pages-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-.records-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-.record-item {
-    padding: 0.5rem 0;
-    border-bottom: 1px solid var(--border, #e2e8f0);
-    font-size: 0.875rem;
-}
-.btn-clear {
-    padding: 0.5rem 1rem;
-    border: 1px solid var(--border, #e2e8f0);
-    border-radius: 0.375rem;
-    background: white;
-    color: var(--muted, #64748b);
-    cursor: pointer;
-    font-size: 0.875rem;
-}
-.btn-clear:hover {
-    background: var(--ayah-bg, #f1f5f9);
-}
-.empty {
-    color: var(--muted, #64748b);
-    padding: 2rem 0;
-    font-size: 0.875rem;
-}
+/* The view uses Tailwind for layout; keep scoped for any future small overrides. */
 </style>
