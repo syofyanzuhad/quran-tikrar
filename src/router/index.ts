@@ -5,25 +5,27 @@ import ReaderView from '../views/ReaderView.vue';
 import ProgressView from '../views/ProgressView.vue';
 import SettingsView from '../views/SettingsView.vue';
 
+const APP_NAME = 'Quran Tikrar';
+
 const routes: RouteRecordRaw[] = [
     {
         path: '/',
         name: 'home',
         component: HomeView,
-        meta: { title: 'Quran Tikrar' },
+        meta: { title: 'Hafal Al-Quran Offline' },
     },
     {
         path: '/baca/:page',
         name: 'reader',
         component: ReaderView,
-        meta: { title: 'Baca' },
+        meta: { title: 'Baca Halaman' },
         props: true,
     },
     {
         path: '/progress',
         name: 'progress',
         component: ProgressView,
-        meta: { title: 'Progress' },
+        meta: { title: 'Progress Hafalan' },
     },
     {
         path: '/pengaturan',
@@ -39,8 +41,13 @@ const router = createRouter({
 });
 
 router.afterEach((to) => {
-    const title = (to.meta?.title as string) ?? 'Quran Tikrar';
-    document.title = title;
+    const base = (to.meta?.title as string) ?? APP_NAME;
+    // For reader pages, append the page number
+    if (to.name === 'reader' && to.params.page) {
+        document.title = `${base} ${to.params.page} — ${APP_NAME}`;
+    } else {
+        document.title = `${base} — ${APP_NAME}`;
+    }
 });
 
 export default router;

@@ -1,19 +1,76 @@
 <!doctype html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- SEO: Primary Meta Tags -->
+    <title>Quran Tikrar — Hafal Al-Quran Offline dengan Metode Tikrar</title>
+    <meta name="description" content="Aplikasi hafalan Al-Quran offline menggunakan metode Tikrar (pengulangan). Baca, hafal, dan lacak progress hafalan per halaman dengan tampilan premium." />
+    <meta name="keywords" content="quran, tikrar, hafalan quran, menghafal quran, quran offline, metode tikrar, hafiz, tahfidz, muraja'ah, al-quran digital" />
+    <meta name="author" content="Quran Tikrar" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://quran-tikrar.app/" />
+
+    <!-- SEO: Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://quran-tikrar.app/" />
+    <meta property="og:title" content="Quran Tikrar — Hafal Al-Quran Offline dengan Metode Tikrar" />
+    <meta property="og:description" content="Aplikasi hafalan Al-Quran offline menggunakan metode Tikrar (pengulangan). Baca, hafal, dan lacak progress hafalan per halaman." />
+    <meta property="og:image" content="https://quran-tikrar.app/og-image.png" />
+    <meta property="og:locale" content="id_ID" />
+    <meta property="og:site_name" content="Quran Tikrar" />
+
+    <!-- SEO: Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Quran Tikrar — Hafal Al-Quran Offline" />
+    <meta name="twitter:description" content="Hafal Al-Quran dengan metode Tikrar. Baca, ulangi, dan lacak progress — sepenuhnya offline." />
+    <meta name="twitter:image" content="https://quran-tikrar.app/og-image.png" />
+
+    <!-- PWA & Mobile -->
+    <meta name="theme-color" content="#059669" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Quran Tikrar" />
+    <link rel="apple-touch-icon" href="/icon-192.svg" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         darkMode: 'class',
       }
     </script>
-    <title>quran-tikrar</title>
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Quran Tikrar",
+      "url": "https://quran-tikrar.app",
+      "description": "Aplikasi hafalan Al-Quran offline menggunakan metode Tikrar (pengulangan). Baca, hafal, dan lacak progress per halaman.",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "IDR"
+      },
+      "inLanguage": ["id", "ar"],
+      "about": {
+        "@type": "Book",
+        "name": "Al-Quran",
+        "inLanguage": "ar"
+      }
+    }
+    </script>
   </head>
   <body>
     <div id="app"></div>
