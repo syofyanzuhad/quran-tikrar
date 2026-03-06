@@ -2,6 +2,7 @@
 import { onMounted } from 'vue';
 import { RouterView } from 'vue-router';
 import BottomNav from './components/ui/BottomNav.vue';
+import OfflineBanner from './components/ui/OfflineBanner.vue';
 import { useQuran } from './composables/useQuran';
 
 const { initializeDatabase, isLoading: isSeeding, seedProgress } = useQuran();
@@ -13,6 +14,7 @@ onMounted(() => {
 
 <template>
     <div class="app">
+        <OfflineBanner />
         <div v-if="isSeeding" class="seed-overlay">
             <p class="seed-text">Downloading Quran for offline use...</p>
             <p class="seed-progress">{{ seedProgress }}%</p>
