@@ -169,11 +169,30 @@ async function confirmClearCache(): Promise<void> {
     }
 }
 
-onMounted(() => {
-    void updateStorageInfo();
-});
+// Load combined with onMounted hook logic at the end instead.
 
 const APP_VERSION = '1.0.0';
+
+// -- Reader UI Mode Selection --
+// We map directly to localStorage here so ReaderView picks it up instantly
+type ReaderUIMode = 'app' | 'mushaf';
+const uiMode = ref<ReaderUIMode>('app');
+
+onMounted(() => {
+    // Other storage info load
+    void updateStorageInfo();
+    
+    // Load UI mode setting
+    const saved = localStorage.getItem('tikrar-reader-ui-mode') as ReaderUIMode | null;
+    if (saved === 'app' || saved === 'mushaf') {
+        uiMode.value = saved;
+    }
+});
+
+function setUIMode(mode: ReaderUIMode) {
+    uiMode.value = mode;
+    localStorage.setItem('tikrar-reader-ui-mode', mode);
+}
 </script>
 
 <template>
@@ -209,6 +228,75 @@ const APP_VERSION = '1.0.0';
                 />
             </div>
             <p class="mt-3 text-sm text-slate-600 dark:text-slate-300">{{ previewTargetText }}</p>
+        </section>
+
+        <!-- Section 1.5: Tampilan Halaman Quran -->
+        <section class="section">
+            <h2 class="section-title">📄 Tampilan Halaman Quran</h2>
+            <p class="text-sm text-slate-500 mb-4">Pilih gaya tampilan saat membaca</p>
+            
+            <div class="space-y-3">
+                
+                <!-- App Mode Option -->
+                <div 
+                    class="relative flex gap-4 p-4 border rounded-xl cursor-pointer transition-all duration-300"
+                    :class="uiMode === 'app' ? 'border-[#059669] bg-[#F1FDF5] shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'"
+                    @click="setUIMode('app')"
+                >
+                    <!-- Mini CSS Preview Mockup -->
+                    <div class="shrink-0 w-16 h-20 bg-[#f8fafc] rounded-md border border-slate-200 p-1 flex flex-col gap-1 shadow-inner">
+                        <div class="w-full h-3 rounded-sm bg-[#FFF8E7] shadow-sm" style="border-left: 2px solid #F5C842"></div>
+                        <div class="w-full h-3 rounded-sm bg-[#EDFAF3] shadow-sm" style="border-left: 2px solid #3DBE7A"></div>
+                        <div class="w-full h-3 rounded-sm bg-[#EAF3FF] shadow-sm" style="border-left: 2px solid #5B9BF5"></div>
+                        <div class="w-full h-3 rounded-sm bg-[#FFF1EA] shadow-sm" style="border-left: 2px solid #F5824A"></div>
+                    </div>
+                    
+                    <div class="flex-1">
+                        <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                            Tampilan App
+                            <span v-if="uiMode === 'app'" class="bg-[#059669] text-white text-[10px] rounded-full px-2 py-0.5 tracking-wide">AKTIF ✓</span>
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                            Modern, dengan counter tikrar terintegrasi di dalam blok.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Mushaf Mode Option -->
+                <div 
+                    class="relative flex gap-4 p-4 border rounded-xl cursor-pointer transition-all duration-300"
+                    :class="uiMode === 'mushaf' ? 'border-[#C4A882] bg-[#FFFDF8] shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'"
+                    @click="setUIMode('mushaf')"
+                >
+                    <!-- Mini CSS Preview Mockup -->
+                    <div class="shrink-0 w-16 h-20 bg-[#E8E0D0] rounded p-1 flex items-center justify-center">
+                        <div class="w-full h-[90%] bg-[#FEFCF5] rounded-[1px] shadow-sm flex flex-col gap-0 border border-black/5 relative relative overflow-hidden">
+                           <div class="h-0.5 w-full bg-[#8B7355]"></div>
+                           <div class="flex-1 w-full pl-0.5 pt-0.5 flex flex-col gap-[1px]">
+                               <div class="w-full h-2.5 bg-[#FEFCF5]" style="border-left: 2px solid #F5C842"></div>
+                               <div class="w-full h-[1px] bg-[#E8DCC8]"></div>
+                               <div class="w-full h-2.5 bg-[#FEFCF5]" style="border-left: 2px solid #3DBE7A"></div>
+                               <div class="w-full h-[1px] bg-[#E8DCC8]"></div>
+                               <div class="w-full h-2.5 bg-[#FEFCF5]" style="border-left: 2px solid #5B9BF5"></div>
+                               <div class="w-full h-[1px] bg-[#E8DCC8]"></div>
+                               <div class="w-full h-2.5 bg-[#FEFCF5]" style="border-left: 2px solid #F5824A"></div>
+                           </div>
+                           <div class="h-0.5 w-full bg-[#8B7355]"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1">
+                        <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                            Tampilan Mushaf
+                            <span v-if="uiMode === 'mushaf'" class="bg-[#C4A882] text-[#3B2A1A] text-[10px] rounded-full px-2 py-0.5 tracking-wide font-bold">AKTIF ✓</span>
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                            Seperti memegang halaman Mushaf Tikrar fisik klasik.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
         </section>
 
         <!-- Section 2: Tampilan Teks Arab -->
