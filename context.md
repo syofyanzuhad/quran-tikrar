@@ -175,6 +175,65 @@ interface HafalanProgress {
 
 ---
 
+## 🖥️ Dual Reader UI Variants
+
+The Quran reader has TWO interchangeable UI modes.
+Both are located in `src/components/reader/` and share identical props/emits.
+
+### Mode A — AppReader.vue
+- Modern mobile app aesthetic
+- Vibrant solid block colors from `BLOCK_COLORS[i].bg` / `.border`
+- Rounded cards (border-radius 16–18px)
+- TikrarCounter shown as floating pill inside active block
+- Arabic text: 20px, ayah markers as circle badges
+- Background: `#f8fafc`
+
+### Mode B — MushafReader.vue
+- Physical Quran page aesthetic
+- Soft parchment colors from `BLOCK_COLORS[i].mushafBg` / `.mushafBorder`
+- Near-square corners (border-radius 3px), stacked paper shadow
+- TikrarCounter shown as compact strip with backdrop-blur
+- Arabic text: 17–19px, ayah markers use traditional ۝ character
+- Background: `#E8E0D0` (desk/table surface)
+- Ornament bars top and bottom using brown-gold gradient
+
+**MushafReader uses `line_number` data from quran.com API to ensure block boundaries match the physical Mushaf Tikrar exactly.**
+Block 1 = lines 1–4, Block 2 = lines 5–8, Block 3 = lines 9–12, Block 4 = lines 13–15. This data is stored in the `words` table in IndexedDB and never relies on browser text wrapping.
+
+### ⚠️ Key Technical Notes
+
+Never rely on browser text wrapping for line breaks.
+The `line_number` field from the API IS the ground truth.
+Words are pre-assigned to lines — we just render them.
+Block boundaries are LINE-based, not AYAH-based.
+An ayah can span multiple blocks if its words fall on different line groups.
+This matches the physical Mushaf Tikrar exactly.
+Font choice affects visual quality, NOT accuracy.
+Even with a fallback font, blocks will be correct because
+we use API `line_number` data, not CSS text wrapping.
+Page 1 (Al-Fatihah) and short surahs near the end of the Quran
+may have fewer than 15 text lines. The remaining lines should be
+rendered as empty lines to maintain consistent page height.
+The `words` table will have ~77,000+ rows.
+Always query with `db.words.where('pageNumber').equals(n)`
+to use the index — never scan the full table.
+
+### Switching Logic
+- User toggles in `ReaderView.vue` or in Settings
+- Preference persisted: `localStorage` key `'tikrar-reader-ui-mode'`
+- Both modes mount/unmount cleanly — no shared DOM state
+- Tikrar state (reps, activeBlock) is owned by `useTikrar` composable,
+  not by either UI component — so switching never loses progress
+
+### Color Constants
+NEVER hardcode block colors in components.
+ALWAYS import from: `src/constants/blockColors.ts` → `BLOCK_COLORS` array
+
+Use `.bg` / `.border` / `.accent` / `.soft` for AppReader.
+Use `.mushafBg` / `.mushafBorder` / `.mushafInk` / `.mushafStripe` for MushafReader.
+
+---
+
 ## 🔄 Alur User Utama (Reader Flow)
 
 ```
