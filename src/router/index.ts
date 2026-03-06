@@ -3,6 +3,7 @@ import type { RouteRecordRaw } from 'vue-router';
 import HomeView from '../views/HomeView.vue';
 import ReaderView from '../views/ReaderView.vue';
 import ProgressView from '../views/ProgressView.vue';
+import SettingsView from '../views/SettingsView.vue';
 
 const routes: RouteRecordRaw[] = [
     {
@@ -12,10 +13,10 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'Quran Tikrar' },
     },
     {
-        path: '/reader/:surahNumber',
+        path: '/baca/:page',
         name: 'reader',
         component: ReaderView,
-        meta: { title: 'Reader' },
+        meta: { title: 'Baca' },
         props: true,
     },
     {
@@ -23,6 +24,12 @@ const routes: RouteRecordRaw[] = [
         name: 'progress',
         component: ProgressView,
         meta: { title: 'Progress' },
+    },
+    {
+        path: '/pengaturan',
+        name: 'settings',
+        component: SettingsView,
+        meta: { title: 'Pengaturan' },
     },
 ];
 

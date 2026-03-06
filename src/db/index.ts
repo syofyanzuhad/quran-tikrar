@@ -69,6 +69,23 @@ export class QuranDatabase extends Dexie {
     }
 
     /**
+     * Get mushaf page number of the first verse of a surah.
+     */
+    async getFirstPageOfSurah(surahId: number): Promise<number> {
+        const first = await this.ayahs.where('surahId').equals(surahId).first();
+        return first?.page ?? 1;
+    }
+
+    /**
+     * Get sorted list of mushaf page numbers that contain verses of this surah.
+     */
+    async getPagesInSurah(surahId: number): Promise<number[]> {
+        const ayahs = await this.ayahs.where('surahId').equals(surahId).toArray();
+        const pages = [...new Set(ayahs.map((a) => a.page))].sort((a, b) => a - b);
+        return pages;
+    }
+
+    /**
      * Get hafalan progress for a page. Returns undefined if not found.
      */
     async getProgress(pageNum: number): Promise<HafalanProgress | undefined> {

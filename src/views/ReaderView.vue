@@ -1,52 +1,135 @@
 <script setup lang="ts">
-import { onMounted, watch, computed } from 'vue';
-import { useRoute } from 'vue-router';
-import { useQuranStore } from '../stores/quranStore';
+import { ref, computed, watch, onMounted, inject } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useSwipe } from '@vueuse/core';
+import { useQuran } from '../composables/useQuran';
+import { useTikrar } from '../composables/useTikrar';
+import { SETTINGS_KEY } from '../composables/useSettings';
+import type { SettingsState } from '../composables/useSettings';
 import BlockReader from '../components/quran/BlockReader.vue';
 import LoadingSpinner from '../components/ui/LoadingSpinner.vue';
+import { LAST_PAGE_KEY } from '../constants/storage';
+
+const settings = inject<SettingsState | null>(SETTINGS_KEY);
+
+const TOTAL_PAGES = 604;
 
 const route = useRoute();
-const quranStore = useQuranStore();
+const router = useRouter();
+const { getPageData } = useQuran();
+const tikrar = useTikrar();
 
-const surahNumber = computed(() => Number(route.params.surahNumber) || 1);
-const currentPage = computed(() => {
-    const raw = route.query.page;
-    const num = typeof raw === 'string' ? Number(raw) : Array.isArray(raw) ? Number(raw[0]) : NaN;
-    return Number.isFinite(num) ? num : undefined;
+const pageNumber = computed(() => {
+    const p = route.params.page;
+    const n = typeof p === 'string' ? parseInt(p, 10) : Array.isArray(p) ? parseInt(p[0] ?? '', 10) : NaN;
+    return Number.isFinite(n) && n >= 1 && n <= TOTAL_PAGES ? n : 1;
 });
 
-const currentSurah = computed(() => quranStore.currentSurah);
-const currentAyahs = computed(() => quranStore.currentAyahs);
-const loading = computed(() => quranStore.loading);
+const ayahs = ref<import('../types/quran').Ayah[]>([]);
+const blocks = ref<import('../types/quran').TikrarBlock[]>([]);
+const loading = ref(true);
+
+const canPrev = computed(() => pageNumber.value > 1);
+const canNext = computed(() => pageNumber.value < TOTAL_PAGES);
+
+function saveLastPage(page: number): void {
+    try {
+        localStorage.setItem(LAST_PAGE_KEY, String(page));
+    } catch {
+        /* ignore */
+    }
+}
+
+function goToPage(p: number): void {
+    const clamped = Math.max(1, Math.min(TOTAL_PAGES, p));
+    if (clamped === pageNumber.value) return;
+    router.replace({ name: 'reader', params: { page: String(clamped) } });
+}
+
+function setActiveBlock(index: number): void {
+    tikrar.currentBlockIndex.value = index;
+}
+
+async function loadPage(p: number): Promise<void> {
+    loading.value = true;
+    try {
+        if (settings) {
+            tikrar.targetReps.value = settings.targetReps.value;
+            tikrar.mode.value = settings.tikrarMode.value;
+        }
+        const data = await getPageData(p);
+        ayahs.value = data.ayahs;
+        blocks.value = data.blocks;
+        tikrar.startSession(p);
+    } finally {
+        loading.value = false;
+    }
+}
+
+watch(pageNumber, (p) => {
+    saveLastPage(p);
+    void loadPage(p);
+}, { immediate: true });
 
 onMounted(() => {
-    quranStore.loadSurah(surahNumber.value);
+    saveLastPage(pageNumber.value);
 });
 
-watch(surahNumber, (num) => {
-    quranStore.loadSurah(num);
+const readerEl = ref<HTMLElement | null>(null);
+useSwipe(readerEl, {
+    onSwipeEnd(_, direction) {
+        if (direction === 'left') goToPage(pageNumber.value + 1);
+        else if (direction === 'right') goToPage(pageNumber.value - 1);
+    },
+    threshold: 50,
 });
 </script>
 
 <template>
-    <div class="reader-view">
-        <header class="header" v-if="currentSurah">
-            <h1 class="title">{{ currentSurah.nameSimple }}</h1>
-            <p class="meta">{{ currentSurah.nameArabic }} · {{ currentSurah.versesCount }} ayahs</p>
-        </header>
+    <div ref="readerEl" class="reader-view">
+        <!-- Page navigation -->
+        <nav class="page-nav">
+            <button
+                type="button"
+                class="nav-btn"
+                :disabled="!canPrev"
+                aria-label="Halaman sebelumnya"
+                @click="goToPage(pageNumber - 1)"
+            >
+                ← sebelumnya
+            </button>
+            <span v-if="settings?.showPageNumber.value !== false" class="page-label">Halaman {{ pageNumber }}</span>
+            <button
+                type="button"
+                class="nav-btn"
+                :disabled="!canNext"
+                aria-label="Halaman berikutnya"
+                @click="goToPage(pageNumber + 1)"
+            >
+                berikutnya →
+            </button>
+        </nav>
 
         <LoadingSpinner
-            v-if="loading && currentAyahs.length === 0"
+            v-if="loading && ayahs.length === 0"
             size="lg"
             class="center-spinner"
         />
         <BlockReader
-            v-else-if="currentAyahs.length > 0"
-            :ayahs="currentAyahs"
-            :surah-id="surahNumber"
-            :current-page="currentPage"
+            v-else-if="ayahs.length > 0"
+            :page-number="pageNumber"
+            :blocks="blocks"
+            :ayahs="ayahs"
+            :active-block-index="tikrar.currentBlockIndex.value"
+            :session-reps="tikrar.sessionReps.value"
+            :target-reps="settings ? settings.targetReps.value : tikrar.targetReps.value"
+            :show-translation="settings?.showTranslation.value !== false"
+            :show-page-number="settings?.showPageNumber.value !== false"
+            @block-tapped="setActiveBlock"
+            @rep-incremented="tikrar.incrementRep"
+            @block-completed="tikrar.resetBlock"
         />
-        <p v-else class="empty">No ayahs loaded.</p>
+        <p v-else class="empty">Tidak ada data untuk halaman ini.</p>
     </div>
 </template>
 
@@ -54,18 +137,38 @@ watch(surahNumber, (num) => {
 .reader-view {
     padding: 1rem;
     padding-bottom: 5rem;
+    touch-action: pan-y;
 }
-.header {
+.page-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
     margin-bottom: 1rem;
+    padding: 0.5rem 0;
 }
-.title {
-    font-size: 1.25rem;
-    margin: 0 0 0.25rem 0;
-}
-.meta {
+.nav-btn {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0;
+    background: white;
     font-size: 0.875rem;
-    color: var(--muted, #64748b);
-    margin: 0;
+    font-weight: 500;
+    color: #1a7a4a;
+    cursor: pointer;
+    transition: background 0.2s, opacity 0.2s;
+}
+.nav-btn:hover:not(:disabled) {
+    background: #f0fdf4;
+}
+.nav-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.page-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #0f172a;
 }
 .center-spinner {
     display: flex;
@@ -73,7 +176,8 @@ watch(surahNumber, (num) => {
     padding: 3rem;
 }
 .empty {
-    color: var(--muted, #64748b);
+    color: #64748b;
     padding: 2rem;
+    text-align: center;
 }
 </style>

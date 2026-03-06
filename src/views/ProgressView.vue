@@ -5,8 +5,16 @@ import { useTransition } from '@vueuse/core';
 import { db, type StoredHafalanProgress } from '../db';
 import { useProgress, type JuzProgress } from '../composables/useProgress';
 import type { HafalanProgress, Surah } from '../types/quran';
+import LoadingSpinner from '../components/ui/LoadingSpinner.vue';
 
 const router = useRouter();
+
+const isEmptyProgress = computed(
+    () =>
+        overall.value.completedPages === 0 &&
+        recent.value.length === 0 &&
+        streakDays.value === 0
+);
 const {
     getOverallProgress,
     getJuzProgress,
@@ -93,8 +101,7 @@ async function loadSurahs(ids: number[]): Promise<void> {
 function goToProgressItem(p: HafalanProgress): void {
     router.push({
         name: 'reader',
-        params: { surahNumber: String(p.surahId || 1) },
-        query: { page: String(p.pageNumber) },
+        params: { page: String(p.pageNumber) },
     });
 }
 
@@ -172,8 +179,30 @@ onMounted(async () => {
             <p class="mt-1 text-sm text-slate-500">Tracking hafalan with Tikrar (offline)</p>
         </header>
 
+        <LoadingSpinner v-if="loading" size="lg" class="mx-auto my-12" />
+
+        <!-- Empty state -->
+        <section
+            v-if="!loading && isEmptyProgress"
+            class="empty-state"
+        >
+            <div class="empty-illus" aria-hidden="true">📖</div>
+            <h2 class="empty-title">Belum ada progress</h2>
+            <p class="empty-desc">Buka halaman Quran dan mulai hafal dengan Tikrar.</p>
+            <button
+                type="button"
+                class="empty-cta"
+                @click="router.push('/')"
+            >
+                Mulai hafal
+            </button>
+        </section>
+
         <!-- Section 1: Summary -->
-        <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <section
+            v-if="!loading && !isEmptyProgress"
+            class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+        >
             <div class="flex items-start justify-between gap-4">
                 <div class="min-w-0">
                     <p class="text-sm font-semibold text-slate-600">Ringkasan</p>
@@ -204,6 +233,7 @@ onMounted(async () => {
             </div>
         </section>
 
+        <template v-if="!loading && !isEmptyProgress">
         <!-- Section 2: Juz grid -->
         <section class="mt-6">
             <div class="mb-2 flex items-end justify-between gap-3">
@@ -353,7 +383,7 @@ onMounted(async () => {
                             <button
                                 type="button"
                                 class="shrink-0 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white"
-                                @click="router.push({ name: 'reader', params: { surahNumber: String(p.surahId || 1) }, query: { page: String(p.pageNumber) } })"
+                                @click="router.push({ name: 'reader', params: { page: String(p.pageNumber) } })"
                             >
                                 Lanjut
                             </button>
@@ -362,9 +392,58 @@ onMounted(async () => {
                 </div>
             </div>
         </div>
+        </template>
     </div>
 </template>
 
 <style scoped>
-/* The view uses Tailwind for layout; keep scoped for any future small overrides. */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    text-align: center;
+}
+.empty-illus {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.9;
+}
+.empty-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 0.5rem 0;
+}
+.empty-desc {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin: 0 0 1.5rem 0;
+    max-width: 20rem;
+}
+.empty-cta {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.75rem 1.5rem;
+    border-radius: 1rem;
+    background: #1a7a4a;
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.empty-cta:hover {
+    box-shadow: 0 4px 12px rgba(26, 122, 74, 0.35);
+}
+.empty-cta:active {
+    transform: scale(0.98);
+}
+@media (prefers-reduced-motion: reduce) {
+    .empty-cta {
+        transition: none;
+    }
+}
 </style>

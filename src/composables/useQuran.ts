@@ -17,6 +17,8 @@ export function useQuran(): {
     getSurahList: () => Promise<Surah[]>;
     getPageData: (page: number) => Promise<{ ayahs: Ayah[]; blocks: TikrarBlock[] }>;
     getAyahsBySurah: (surahId: number) => Promise<Ayah[]>;
+    getFirstPageOfSurah: (surahId: number) => Promise<number>;
+    getPagesInSurah: (surahId: number) => Promise<number[]>;
 } {
     const isLoading = ref(false);
     const seedProgress = ref(0);
@@ -57,6 +59,14 @@ export function useQuran(): {
         return db.ayahs.where('surahId').equals(surahId).sortBy('verseNumber');
     }
 
+    async function getFirstPageOfSurah(surahId: number): Promise<number> {
+        return db.getFirstPageOfSurah(surahId);
+    }
+
+    async function getPagesInSurah(surahId: number): Promise<number[]> {
+        return db.getPagesInSurah(surahId);
+    }
+
     return {
         isLoading,
         seedProgress,
@@ -64,5 +74,7 @@ export function useQuran(): {
         getSurahList,
         getPageData,
         getAyahsBySurah,
+        getFirstPageOfSurah,
+        getPagesInSurah,
     };
 }
