@@ -36,8 +36,8 @@ export function useProgress() {
     }
 
     const completedPages = computed(() => {
-        const set = new Set(records.value.map((r) => r.page));
-        return Array.from(set).sort((a, b) => a - b);
+        const set = new Set(records.value.map((r: ProgressRecord) => r.page));
+        return Array.from(set).sort((a: number, b: number) => a - b);
     });
 
     const totalPagesCompleted = computed(() => completedPages.value.length);

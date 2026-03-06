@@ -51,3 +51,12 @@ export interface HafalanProgress {
     lastStudiedAt: Date;
     totalReps: number;
 }
+
+/** Legacy: simple progress record for UI (surah/ayah range completed). */
+export interface ProgressRecord {
+    surahNumber: number;
+    ayahFrom: number;
+    ayahTo: number;
+    page: number;
+    completedAt: string;
+}

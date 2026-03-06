@@ -51,7 +51,7 @@ function clearProgress() {
             <ul class="records-list">
                 <li
                     v-for="(r, i) in records.slice(-10).reverse()"
-                    :key="i"
+                    :key="String(r.page) + '-' + r.ayahFrom + '-' + r.ayahTo + '-' + i"
                     class="record-item"
                 >
                     Surah {{ r.surahNumber }} · Page {{ r.page }} · {{ r.ayahFrom }}-{{ r.ayahTo }}
