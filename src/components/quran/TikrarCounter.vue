@@ -2,78 +2,131 @@
 import { computed } from 'vue';
 import { useAyahTikrar } from '../../composables/useTikrar';
 
-const props = defineProps<{
-    surahNumber: number;
-    ayahNumber: number;
+const props = defineProps<
+    | {
+          /** Block mode (controlled by parent) */
+          blockId: string;
+          reps: number;
+          targetReps: number;
+          surahNumber?: never;
+          ayahNumber?: never;
+      }
+    | {
+          /** Legacy per-ayah mode (localStorage) */
+          surahNumber: number;
+          ayahNumber: number;
+          blockId?: never;
+          reps?: never;
+          targetReps?: never;
+      }
+>();
+
+const emit = defineEmits<{
+    (e: 'increment'): void;
+    (e: 'reset'): void;
 }>();
 
 const { getCount, increment, reset } = useAyahTikrar();
 
-const count = computed(() => getCount(props.surahNumber, props.ayahNumber));
+const isBlockMode = computed(() => 'blockId' in props);
+const count = computed(() => {
+    if (isBlockMode.value) return props.reps;
+    return getCount(props.surahNumber, props.ayahNumber);
+});
+
+const target = computed(() => {
+    if (isBlockMode.value) return props.targetReps;
+    return 20;
+});
+
+const progress = computed(() => {
+    const t = target.value;
+    if (t <= 0) return 100;
+    return Math.max(0, Math.min(100, Math.round((count.value / t) * 100)));
+});
 
 function handleIncrement() {
+    if (isBlockMode.value) {
+        emit('increment');
+        return;
+    }
     increment(props.surahNumber, props.ayahNumber);
 }
 
 function handleReset() {
+    if (isBlockMode.value) {
+        emit('reset');
+        return;
+    }
     reset(props.surahNumber, props.ayahNumber);
 }
 </script>
 
 <template>
-    <div class="tikrar-counter">
-        <span class="label">Tikrar</span>
-        <span class="count">{{ count }}</span>
-        <button
-            type="button"
-            class="btn-inc"
-            aria-label="Increment tikrar"
-            @click="handleIncrement"
-        >
-            +
-        </button>
-        <button
-            v-if="count > 0"
-            type="button"
-            class="btn-reset"
-            aria-label="Reset tikrar"
-            @click="handleReset"
-        >
-            Reset
-        </button>
+    <div class="flex items-center gap-4">
+        <div class="relative h-20 w-20 shrink-0">
+            <svg class="h-20 w-20 -rotate-90" viewBox="0 0 100 100" aria-hidden="true">
+                <circle
+                    cx="50"
+                    cy="50"
+                    r="42"
+                    class="fill-none stroke-slate-200"
+                    stroke-width="10"
+                />
+                <circle
+                    cx="50"
+                    cy="50"
+                    r="42"
+                    class="fill-none stroke-emerald-600 transition-[stroke-dashoffset] duration-300"
+                    stroke-width="10"
+                    stroke-linecap="round"
+                    :stroke-dasharray="2 * Math.PI * 42"
+                    :stroke-dashoffset="(2 * Math.PI * 42) * (1 - progress / 100)"
+                />
+            </svg>
+
+            <div class="absolute inset-0 grid place-items-center">
+                <div class="text-center">
+                    <div class="text-2xl font-extrabold tabular-nums text-slate-900">
+                        {{ count }}
+                    </div>
+                    <div class="text-xs font-semibold text-slate-500">
+                        / {{ target }}
+                    </div>
+                </div>
+            </div>
+
+            <button
+                v-if="count > 0"
+                type="button"
+                class="absolute -right-1 -top-1 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200 active:scale-[0.98]"
+                aria-label="Reset tikrar"
+                @click.stop="handleReset"
+            >
+                <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                    <path
+                        fill-rule="evenodd"
+                        d="M10 3a7 7 0 1 0 6.32 4H14a1 1 0 1 1 0-2h4a1 1 0 0 1 1 1v4a1 1 0 1 1-2 0V8.42A9 9 0 1 1 10 1a1 1 0 1 1 0 2Z"
+                        clip-rule="evenodd"
+                    />
+                </svg>
+            </button>
+        </div>
+
+        <div class="flex flex-col items-start gap-2">
+            <button
+                type="button"
+                class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-2xl font-bold text-white shadow-sm transition active:scale-[0.99]"
+                aria-label="Increment tikrar"
+                @click="handleIncrement"
+            >
+                +
+            </button>
+            <div class="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                Tikrar
+            </div>
+        </div>
     </div>
 </template>
 
-<style scoped>
-.tikrar-counter {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-    flex-wrap: wrap;
-}
-.label {
-    font-size: 0.75rem;
-    color: var(--muted, #64748b);
-}
-.count {
-    font-weight: 700;
-    min-width: 1.5rem;
-}
-.btn-inc,
-.btn-reset {
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    border: 1px solid var(--border, #e2e8f0);
-    background: white;
-    cursor: pointer;
-}
-.btn-inc:hover,
-.btn-reset:hover {
-    background: var(--ayah-bg, #f1f5f9);
-}
-.btn-reset {
-    color: var(--muted, #64748b);
-}
-</style>
+<style scoped></style>
