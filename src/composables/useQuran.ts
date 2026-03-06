@@ -4,10 +4,12 @@ import {
     checkIfSeeded,
     seedSurahs,
     seedInitialPages,
-    seedAllPages,
     seedRemainingPages,
     seedPagesForJuz,
     getDownloadedPageNumbers,
+    isWordDataSeeded,
+    seedAllWords,
+    seedProgress as wordSeedProgress
 } from '../db/seed';
 import type { Surah, Ayah, TikrarBlock } from '../types/quran';
 
@@ -17,10 +19,12 @@ import type { Surah, Ayah, TikrarBlock } from '../types/quran';
 export function useQuran(): {
     isLoading: Ref<boolean>;
     seedProgress: Ref<number>;
+    wordSeedProgress: Ref<any>;
     setupChoicePending: Ref<boolean>;
     initializeDatabase: () => Promise<void>;
     runQuickSetup: () => Promise<void>;
     runFullSetup: () => Promise<void>;
+    seedAllWordData: () => Promise<void>;
     downloadRemainingPages: (onProgress?: (percent: number) => void) => Promise<void>;
     downloadJuz: (juzNumber: number, onProgress?: (percent: number) => void) => Promise<void>;
     getDownloadedPageCount: () => Promise<number>;
@@ -48,6 +52,16 @@ export function useQuran(): {
                 setupChoicePending.value = true;
                 return;
             }
+            
+            const wordsSeeded = await isWordDataSeeded();
+            if (!wordsSeeded) {
+                if (window.navigator.onLine) {
+                    await seedAllWords();
+                } else {
+                    alert('Connect to internet first to download Quran data. After that, the app works fully offline.');
+                }
+            }
+
             seedProgress.value = 100;
         } finally {
             isLoading.value = false;
@@ -73,9 +87,7 @@ export function useQuran(): {
         isLoading.value = true;
         seedProgress.value = 0;
         try {
-            await seedAllPages((percent: number) => {
-                seedProgress.value = percent;
-            });
+            await seedAllWords();
             seedProgress.value = 100;
         } finally {
             isLoading.value = false;
@@ -149,10 +161,12 @@ export function useQuran(): {
     return {
         isLoading,
         seedProgress,
+        wordSeedProgress,
         setupChoicePending,
         initializeDatabase,
         runQuickSetup,
         runFullSetup,
+        seedAllWordData: seedAllWords,
         downloadRemainingPages,
         downloadJuz,
         getDownloadedPageCount,

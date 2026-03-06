@@ -1,9 +1,10 @@
 /**
  * Seed Quran data from quran.com API v4 into IndexedDB.
  */
+import { ref } from 'vue';
 import { db } from './index';
 import { JUZ_PAGE_RANGES } from '../constants/juz';
-import type { Surah, Ayah, TikrarBlock, TikrarBlockColor } from '../types/quran';
+import type { Surah, Ayah, TikrarBlock, TikrarBlockColor, QuranWord } from '../types/quran';
 
 const API_BASE = 'https://api.quran.com/api/v4';
 const TRANSLATION_ID = 33; // Bahasa Indonesia
@@ -37,8 +38,17 @@ interface VerseTranslation {
     text: string;
 }
 
+interface VerseWordResponse {
+    id: number;
+    position: number;
+    text_uthmani: string;
+    line_number: number;
+    char_type_name: 'word' | 'end' | 'pause' | 'sajdah';
+}
+
 interface VerseResponse {
     id: number;
+    chapter_id: number;
     verse_number: number;
     verse_key: string;
     text_uthmani: string;
@@ -46,7 +56,9 @@ interface VerseResponse {
     juz_number: number;
     hizb_number: number;
     translations: VerseTranslation[];
+    words: VerseWordResponse[];
 }
+
 
 interface VersesApiResponse {
     verses: VerseResponse[];
@@ -242,13 +254,132 @@ export async function seedPagesForJuz(
  * Seed all pages 1-604 with rate limiting and progress reporting.
  * @deprecated Prefer seedInitialPages on first run and seedRemainingPages from Settings.
  */
-export async function seedAllPages(onProgress?: SeedProgressCallback): Promise<void> {
-    for (let page = 1; page <= TOTAL_PAGES; page++) {
-        await seedPage(page);
-        const percent = Math.round((page / TOTAL_PAGES) * 100);
-        onProgress?.(percent);
-        if (page < TOTAL_PAGES) {
-            await new Promise((r) => setTimeout(r, PAGE_DELAY_MS));
+export const seedProgress = ref<{
+    phase: 'idle' | 'seeding' | 'done' | 'error';
+    current: number;
+    total: number;
+    percentage: number;
+    failedPages: number[];
+}>({
+    phase: 'idle',
+    current: 0,
+    total: TOTAL_PAGES,
+    percentage: 0,
+    failedPages: [],
+});
+
+/**
+ * Fetch and seed words and ayahs for a specific page using API v4.
+ */
+export async function seedPageWords(pageNumber: number): Promise<void> {
+    const url = `${API_BASE}/verses/by_page/${pageNumber}?words=true&word_fields=text_uthmani,line_number,position,char_type_name&per_page=50&translations=${TRANSLATION_ID}`;
+    const data = await fetchWithRetry<VersesApiResponse>(url);
+    const verses = data.verses ?? [];
+    if (verses.length === 0) return;
+
+    const ayahs: Ayah[] = [];
+    const wordsToInsert: QuranWord[] = [];
+
+    for (const v of verses) {
+        const surahId = v.chapter_id ?? Number.parseInt(v.verse_key.split(':')[0] ?? '1', 10);
+        const translationText = v.translations?.find((t) => t.resource_id === TRANSLATION_ID)?.text ?? '';
+        
+        ayahs.push({
+            id: v.id,
+            surahId,
+            verseNumber: v.verse_number,
+            textArab: v.text_uthmani ?? '',
+            textIndoTranslation: translationText,
+            page: v.page_number ?? pageNumber,
+            juz: v.juz_number ?? 1,
+            hizb: v.hizb_number ?? 1,
+        });
+
+        if (v.words && Array.isArray(v.words)) {
+            for (const w of v.words) {
+                wordsToInsert.push({
+                    id: w.id,
+                    ayahId: v.id,
+                    surahId: surahId,
+                    verseNumber: v.verse_number,
+                    position: w.position,
+                    textUthmani: w.text_uthmani,
+                    lineNumber: w.line_number,
+                    pageNumber: pageNumber,
+                    charType: w.char_type_name
+                });
+            }
         }
     }
+
+    if (ayahs.length > 0) {
+        await db.ayahs.bulkPut(ayahs);
+    }
+    
+    if (wordsToInsert.length > 0) {
+        await db.words.bulkPut(wordsToInsert);
+    }
 }
+
+/**
+ * Seed all pages 1-604 specifically for word-level layout support.
+ */
+export async function seedAllWords(): Promise<void> {
+    seedProgress.value.phase = 'seeding';
+    seedProgress.value.current = 0;
+    seedProgress.value.failedPages = [];
+
+    const failed: number[] = [];
+
+    for (let page = 1; page <= TOTAL_PAGES; page++) {
+        try {
+            seedProgress.value.current = page;
+            seedProgress.value.percentage = Math.round((page / TOTAL_PAGES) * 100);
+            await seedPageWords(page);
+        } catch (error) {
+            console.error(`Failed to seed page ${page}:`, error);
+            failed.push(page);
+            seedProgress.value.failedPages.push(page);
+        }
+
+        if (page < TOTAL_PAGES) {
+            await new Promise((r) => setTimeout(r, 150));
+        }
+    }
+
+    // Retry failed pages once
+    if (failed.length > 0) {
+        for (const page of failed) {
+            try {
+                await seedPageWords(page);
+                // Remove from failed tracking if successful on retry
+                const updatedFailures = seedProgress.value.failedPages.filter(p => p !== page);
+                seedProgress.value.failedPages = updatedFailures;
+            } catch (error) {
+                console.error(`Retry failed for page ${page}:`, error);
+            }
+        }
+    }
+
+    if (seedProgress.value.failedPages.length > 0) {
+        seedProgress.value.phase = 'error';
+    } else {
+        seedProgress.value.phase = 'done';
+        await db.meta.put({ key: 'words_seeded', value: true, seededAt: new Date() });
+    }
+}
+
+/**
+ * Check if the word data has already been seeded natively to local storage schema.
+ */
+export async function isWordDataSeeded(): Promise<boolean> {
+    const meta = await db.meta.get('words_seeded');
+    if (meta?.value === true) {
+        const wordCount = await db.words.count();
+        if (wordCount > 70000) {
+            return true;
+        }
+    }
+    return false;
+}
+
