@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { onMounted, provide, ref, watch } from 'vue';
+import { useDark, useToggle } from '@vueuse/core';
 import { RouterView } from 'vue-router';
 import BottomNav from './components/ui/BottomNav.vue';
 import OfflineBanner from './components/ui/OfflineBanner.vue';
 import OnboardingOverlay from './components/ui/OnboardingOverlay.vue';
+import ToastNotification from './components/ui/ToastNotification.vue';
 import { useQuran } from './composables/useQuran';
 import { useSettings, SETTINGS_KEY } from './composables/useSettings';
 
@@ -15,6 +17,9 @@ const showOnboarding = ref(false);
 const isOnline = ref(
     typeof navigator !== 'undefined' ? navigator.onLine : true
 );
+
+const isDark = useDark();
+const toggleDark = useToggle(isDark);
 
 provide(SETTINGS_KEY, settings);
 
@@ -67,6 +72,24 @@ function finishOnboarding(): void {
                 <RouterView />
             </main>
             <BottomNav />
+            <ToastNotification />
+
+            <!-- Floating Theme Toggle -->
+            <button
+                class="theme-toggle shadow-lg"
+                @click="toggleDark()"
+                :aria-label="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+            >
+                <!-- Sun Icon -->
+                <svg v-if="isDark" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-400">
+                    <circle cx="12" cy="12" r="5"/>
+                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                </svg>
+                <!-- Moon Icon -->
+                <svg v-else xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-600">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+            </button>
         </template>
     </div>
 </template>
@@ -125,5 +148,31 @@ function finishOnboarding(): void {
     margin: 0;
     font-size: 0.875rem;
     color: var(--text-muted, #64748b);
+}
+
+.theme-toggle {
+    position: fixed;
+    bottom: 5.5rem; /* Above the bottom nav */
+    right: 1.25rem;
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 50%;
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border, #e2e8f0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 90;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.theme-toggle:active {
+    transform: scale(0.92);
+}
+@media (prefers-reduced-motion: reduce) {
+    .theme-toggle {
+        transition: none;
+    }
 }
 </style>

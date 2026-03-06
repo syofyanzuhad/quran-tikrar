@@ -1,6 +1,6 @@
 :root {
   --arab-font-size: 1.875rem;
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Nunito', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -10,8 +10,8 @@
 
   --text: #0f172a;
   --text-muted: #64748b;
-  --bg: #ffffff;
-  --surface: #f8fafc;
+  --bg: #f8fafc;
+  --surface: #ffffff;
   --border: #e2e8f0;
   --nav-bg: #ffffff;
   --seed-progress-color: #0d9488;
@@ -38,15 +38,18 @@ html.dark {
   --accent: #34d399;
 }
 
-/* Dark mode block colors (reader blocks) */
-html.dark .bg-yellow-50 { background-color: rgb(113 63 18); }
-html.dark .border-yellow-400 { border-color: rgb(202 138 4); }
-html.dark .bg-green-50 { background-color: rgb(20 83 45); }
-html.dark .border-green-400 { border-color: rgb(74 222 128); }
-html.dark .bg-blue-50 { background-color: rgb(30 58 138); }
-html.dark .border-blue-400 { border-color: rgb(96 165 250); }
-html.dark .bg-orange-50 { background-color: rgb(124 45 18); }
-html.dark .border-orange-400 { border-color: rgb(251 146 60); }
+/* Dark mode block colors (Premium Islamic Palette) */
+html.dark .bg-yellow-50 { background-color: #5a320a; }
+html.dark .border-yellow-400 { border-color: #9e680a; }
+
+html.dark .bg-green-50 { background-color: #153A2D; }
+html.dark .border-green-400 { border-color: #2C6E55; }
+
+html.dark .bg-blue-50 { background-color: #1C2638; }
+html.dark .border-blue-400 { border-color: #3A4E6B; }
+
+html.dark .bg-orange-50 { background-color: #3D241C; }
+html.dark .border-orange-400 { border-color: #663B2B; }
 
 a {
   font-weight: 500;
