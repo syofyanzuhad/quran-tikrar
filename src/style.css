@@ -1,17 +1,52 @@
 :root {
+  --arab-font-size: 1.875rem;
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color: #213547;
+  background-color: #ffffff;
+
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --bg: #ffffff;
+  --surface: #f8fafc;
+  --border: #e2e8f0;
+  --nav-bg: #ffffff;
+  --seed-progress-color: #0d9488;
+  --accent: #1a7a4a;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+html.dark {
+  color-scheme: dark;
+  color: #e2e8f0;
+  background-color: #0f172a;
+
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --border: #334155;
+  --nav-bg: #1e293b;
+  --seed-progress-color: #2dd4bf;
+  --accent: #34d399;
+}
+
+/* Dark mode block colors (reader blocks) */
+html.dark .bg-yellow-50 { background-color: rgb(113 63 18); }
+html.dark .border-yellow-400 { border-color: rgb(202 138 4); }
+html.dark .bg-green-50 { background-color: rgb(20 83 45); }
+html.dark .border-green-400 { border-color: rgb(74 222 128); }
+html.dark .bg-blue-50 { background-color: rgb(30 58 138); }
+html.dark .border-blue-400 { border-color: rgb(96 165 250); }
+html.dark .bg-orange-50 { background-color: rgb(124 45 18); }
+html.dark .border-orange-400 { border-color: rgb(251 146 60); }
 
 a {
   font-weight: 500;
@@ -65,15 +100,33 @@ button:focus-visible {
   text-align: center;
 }
 
-@media (prefers-color-scheme: light) {
+body {
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+#app {
+  background-color: var(--bg);
+}
+
+/* Block reader colors (light) — match context design system */
+.bg-yellow-50 { background-color: #FFF8E7; }
+.border-yellow-400 { border-color: #F5C842; }
+.bg-green-50 { background-color: #EDFAF3; }
+.border-green-400 { border-color: #3DBE7A; }
+.bg-blue-50 { background-color: #EAF3FF; }
+.border-blue-400 { border-color: #5B9BF5; }
+.bg-orange-50 { background-color: #FFF1EA; }
+.border-orange-400 { border-color: #F5824A; }
+
+@media (prefers-contrast: more) {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    --text: #0a0f1a;
+    --border: #cbd5e1;
   }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
+  html.dark {
+    --text: #f8fafc;
+    --text-muted: #cbd5e1;
+    --border: #475569;
   }
 }
