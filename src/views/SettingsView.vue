@@ -13,13 +13,16 @@ import type { StoredHafalanProgress, StoredTikrarSession } from '../db';
 
 const settings = inject<SettingsState>(SETTINGS_KEY) ?? useSettings();
 
-const { initializeDatabase, getDownloadedPageCount, downloadRemainingPages, seedProgress } = useQuran();
+const { initializeDatabase, getDownloadedPageCount, downloadRemainingPages, downloadJuz, seedProgress } = useQuran();
 
 const storageUsageMb = ref<number | null>(null);
 const storageStatus = ref<'loading' | 'ready' | 'empty'>('loading');
 const downloadedCount = ref<number | null>(null);
 const isDownloadingRemaining = ref(false);
+const isDownloadingJuz = ref(false);
+const selectedJuz = ref(1);
 const TOTAL_MUSHAF_PAGES = 604;
+const JUZ_OPTIONS = Array.from({ length: 30 }, (_, i) => ({ value: i + 1, label: `Juz ${i + 1}` }));
 const resetConfirmText = ref('');
 const showResetConfirm = ref(false);
 const showClearCacheConfirm = ref(false);
@@ -73,6 +76,17 @@ async function startDownloadRemaining(): Promise<void> {
         await updateStorageInfo();
     } finally {
         isDownloadingRemaining.value = false;
+    }
+}
+
+async function startDownloadJuz(): Promise<void> {
+    if (isDownloadingJuz.value) return;
+    isDownloadingJuz.value = true;
+    try {
+        await downloadJuz(selectedJuz.value);
+        await updateStorageInfo();
+    } finally {
+        isDownloadingJuz.value = false;
     }
 }
 
@@ -310,18 +324,45 @@ const APP_VERSION = '1.0.0';
                 <p v-if="downloadedCount != null" class="text-sm text-slate-600 dark:text-slate-300">
                     Halaman terunduh: <strong>{{ downloadedCount }} dari {{ TOTAL_MUSHAF_PAGES }}</strong>
                     <template v-if="downloadedCount < TOTAL_MUSHAF_PAGES">
-                        — unduh sisa data di bawah untuk baca offline penuh.
+                        — pilih opsi unduh di bawah.
                     </template>
                 </p>
-                <div v-if="downloadedCount != null && downloadedCount < TOTAL_MUSHAF_PAGES" class="flex flex-wrap gap-2">
-                    <button
-                        type="button"
-                        class="action-btn"
-                        :disabled="isDownloadingRemaining"
-                        @click="startDownloadRemaining"
-                    >
-                        {{ isDownloadingRemaining ? `Mengunduh… ${seedProgress}%` : 'Unduh sisa data Quran' }}
-                    </button>
+                <div v-if="downloadedCount != null && downloadedCount < TOTAL_MUSHAF_PAGES" class="download-options space-y-4">
+                    <div class="download-option">
+                        <h3 class="text-sm font-semibold text-slate-700 mb-2">Opsi 1: Unduh per Juz</h3>
+                        <p class="text-xs text-slate-500 mb-2">Pilih satu juz untuk diunduh (sekitar 20 halaman per juz).</p>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <select
+                                v-model.number="selectedJuz"
+                                class="juz-select"
+                                :disabled="isDownloadingJuz || isDownloadingRemaining"
+                            >
+                                <option v-for="opt in JUZ_OPTIONS" :key="opt.value" :value="opt.value">
+                                    {{ opt.label }}
+                                </option>
+                            </select>
+                            <button
+                                type="button"
+                                class="action-btn"
+                                :disabled="isDownloadingJuz || isDownloadingRemaining"
+                                @click="startDownloadJuz"
+                            >
+                                {{ isDownloadingJuz ? `Mengunduh Juz ${selectedJuz}… ${seedProgress}%` : 'Unduh Juz ini' }}
+                            </button>
+                        </div>
+                    </div>
+                    <div class="download-option">
+                        <h3 class="text-sm font-semibold text-slate-700 mb-2">Opsi 2: Unduh seluruh Quran</h3>
+                        <p class="text-xs text-slate-500 mb-2">Unduh semua halaman yang belum ada (sisa data).</p>
+                        <button
+                            type="button"
+                            class="action-btn"
+                            :disabled="isDownloadingRemaining || isDownloadingJuz"
+                            @click="startDownloadRemaining"
+                        >
+                            {{ isDownloadingRemaining ? `Mengunduh… ${seedProgress}%` : 'Unduh sisa data Quran' }}
+                        </button>
+                    </div>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <button
@@ -505,6 +546,29 @@ const APP_VERSION = '1.0.0';
 .action-btn:disabled {
     opacity: 0.7;
     cursor: not-allowed;
+}
+.download-options {
+    margin-top: 0.75rem;
+}
+.download-option {
+    padding: 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    background: #f8fafc;
+}
+.download-option h3 {
+    margin: 0 0 0.5rem 0;
+}
+.download-option p {
+    margin: 0 0 0.5rem 0;
+}
+.juz-select {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    font-size: 0.875rem;
+    min-width: 6rem;
 }
 .modal-overlay {
     position: fixed;

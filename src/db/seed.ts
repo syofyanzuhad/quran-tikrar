@@ -2,6 +2,7 @@
  * Seed Quran data from quran.com API v4 into IndexedDB.
  */
 import { db } from './index';
+import { JUZ_PAGE_RANGES } from '../constants/juz';
 import type { Surah, Ayah, TikrarBlock, TikrarBlockColor } from '../types/quran';
 
 const API_BASE = 'https://api.quran.com/api/v4';
@@ -205,6 +206,29 @@ export async function seedRemainingPages(onProgress?: SeedProgressCallback): Pro
     const downloadedSet = new Set(downloaded);
     const missing: number[] = [];
     for (let p = 1; p <= TOTAL_PAGES; p++) {
+        if (!downloadedSet.has(p)) missing.push(p);
+    }
+    if (missing.length === 0) {
+        onProgress?.(100);
+        return;
+    }
+    await seedPages(missing, onProgress);
+}
+
+/**
+ * Seed only pages for one juz (1–30) that are not yet in the DB.
+ */
+export async function seedPagesForJuz(
+    juzNumber: number,
+    onProgress?: SeedProgressCallback
+): Promise<void> {
+    const range = JUZ_PAGE_RANGES[juzNumber - 1];
+    if (!range) return;
+    const [start, end] = range;
+    const downloaded = await getDownloadedPageNumbers();
+    const downloadedSet = new Set(downloaded);
+    const missing: number[] = [];
+    for (let p = start; p <= end; p++) {
         if (!downloadedSet.has(p)) missing.push(p);
     }
     if (missing.length === 0) {

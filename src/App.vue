@@ -11,7 +11,7 @@ import { useSettings, SETTINGS_KEY } from './composables/useSettings';
 
 const ONBOARDING_DONE_KEY = 'onboarding-done';
 
-const { initializeDatabase, isLoading: isSeeding, seedProgress } = useQuran();
+const { initializeDatabase, isLoading: isSeeding, seedProgress, setupChoicePending, runQuickSetup, runFullSetup } = useQuran();
 const settings = useSettings();
 const showOnboarding = ref(false);
 const isOnline = ref(
@@ -53,16 +53,30 @@ function finishOnboarding(): void {
 <template>
     <div class="app">
         <OfflineBanner />
-        <div v-if="isSeeding" class="seed-overlay">
-            <div class="seed-progress-bar" role="progressbar" :aria-valuenow="seedProgress" aria-valuemin="0" aria-valuemax="100">
+        <div v-if="setupChoicePending || isSeeding" class="seed-overlay">
+            <div v-if="isSeeding" class="seed-progress-bar" role="progressbar" :aria-valuenow="seedProgress" aria-valuemin="0" aria-valuemax="100">
                 <div class="seed-progress-fill" :style="{ width: `${seedProgress}%` }" />
             </div>
             <template v-if="!isOnline">
                 <p class="seed-text seed-error">Sambungkan internet untuk mengunduh data Quran terlebih dahulu.</p>
                 <p class="seed-hint">Nyalakan Wi‑Fi atau data seluler lalu muat ulang halaman.</p>
             </template>
+            <template v-else-if="setupChoicePending">
+                <p class="seed-title">Pilih cara unduh data Quran</p>
+                <p class="seed-hint">Anda bisa mengunduh sisa data nanti di Pengaturan.</p>
+                <div class="setup-choices">
+                    <button type="button" class="setup-btn quick" @click="runQuickSetup">
+                        <span class="setup-btn-label">Quick setup</span>
+                        <span class="setup-btn-desc">Surah 1 + Juz 30 (~24 halaman), siap dipakai cepat.</span>
+                    </button>
+                    <button type="button" class="setup-btn full" @click="runFullSetup">
+                        <span class="setup-btn-label">Full setup</span>
+                        <span class="setup-btn-desc">Seluruh Quran (604 halaman), offline penuh.</span>
+                    </button>
+                </div>
+            </template>
             <template v-else>
-                <p class="seed-text">Mengunduh Surah 1 & Juz 30 untuk offline…</p>
+                <p class="seed-text">Mengunduh data Quran…</p>
                 <p class="seed-progress">{{ seedProgress }}%</p>
             </template>
         </div>
@@ -148,6 +162,70 @@ function finishOnboarding(): void {
     margin: 0;
     font-size: 0.875rem;
     color: var(--text-muted, #64748b);
+}
+.seed-title {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text, #0f172a);
+}
+.setup-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+    width: 100%;
+    max-width: 20rem;
+}
+.setup-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    padding: 1rem 1.25rem;
+    border-radius: 1rem;
+    border: 2px solid var(--border, #e2e8f0);
+    background: var(--surface, #fff);
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, transform 0.15s;
+}
+.setup-btn:hover {
+    border-color: #1a7a4a;
+    background: #f0fdf4;
+}
+.setup-btn:active {
+    transform: scale(0.98);
+}
+.setup-btn.quick {
+    border-color: #0d9488;
+    background: var(--bg-green-50, #153A2D);
+}
+.setup-btn.quick:hover {
+    border-color: #0f766e;
+    background: var(--bg-green-100, #2C6E55);
+}
+.setup-btn.full {
+    border-color: #1a7a4a;
+    background: var(--bg-green-50, #153A2D);
+}
+.setup-btn.full:hover {
+    border-color: #15803d;
+    background: var(--bg-green-100, #2C6E55);
+}
+.setup-btn-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text, #0f172a);
+}
+.setup-btn-desc {
+    margin-top: 0.25rem;
+    font-size: 0.8125rem;
+    color: var(--text-muted, #64748b);
+}
+@media (prefers-reduced-motion: reduce) {
+    .setup-btn {
+        transition: none;
+    }
 }
 
 .theme-toggle {

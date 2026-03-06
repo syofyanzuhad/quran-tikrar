@@ -4,7 +4,9 @@ import {
     checkIfSeeded,
     seedSurahs,
     seedInitialPages,
+    seedAllPages,
     seedRemainingPages,
+    seedPagesForJuz,
     getDownloadedPageNumbers,
 } from '../db/seed';
 import type { Surah, Ayah, TikrarBlock } from '../types/quran';
@@ -15,8 +17,12 @@ import type { Surah, Ayah, TikrarBlock } from '../types/quran';
 export function useQuran(): {
     isLoading: Ref<boolean>;
     seedProgress: Ref<number>;
+    setupChoicePending: Ref<boolean>;
     initializeDatabase: () => Promise<void>;
+    runQuickSetup: () => Promise<void>;
+    runFullSetup: () => Promise<void>;
     downloadRemainingPages: (onProgress?: (percent: number) => void) => Promise<void>;
+    downloadJuz: (juzNumber: number, onProgress?: (percent: number) => void) => Promise<void>;
     getDownloadedPageCount: () => Promise<number>;
     getSurahList: () => Promise<Surah[]>;
     getPageData: (page: number) => Promise<{ ayahs: Ayah[]; blocks: TikrarBlock[] }>;
@@ -26,18 +32,50 @@ export function useQuran(): {
 } {
     const isLoading = ref(false);
     const seedProgress = ref(0);
+    const setupChoicePending = ref(false);
 
     async function initializeDatabase(): Promise<void> {
         isLoading.value = true;
         seedProgress.value = 0;
+        setupChoicePending.value = false;
         try {
+            const surahCount = await db.surahs.count();
+            if (surahCount === 0) {
+                await seedSurahs();
+            }
             const seeded = await checkIfSeeded();
             if (!seeded) {
-                await seedSurahs();
-                await seedInitialPages((percent: number) => {
-                    seedProgress.value = percent;
-                });
+                setupChoicePending.value = true;
+                return;
             }
+            seedProgress.value = 100;
+        } finally {
+            isLoading.value = false;
+        }
+    }
+
+    async function runQuickSetup(): Promise<void> {
+        setupChoicePending.value = false;
+        isLoading.value = true;
+        seedProgress.value = 0;
+        try {
+            await seedInitialPages((percent: number) => {
+                seedProgress.value = percent;
+            });
+            seedProgress.value = 100;
+        } finally {
+            isLoading.value = false;
+        }
+    }
+
+    async function runFullSetup(): Promise<void> {
+        setupChoicePending.value = false;
+        isLoading.value = true;
+        seedProgress.value = 0;
+        try {
+            await seedAllPages((percent: number) => {
+                seedProgress.value = percent;
+            });
             seedProgress.value = 100;
         } finally {
             isLoading.value = false;
@@ -86,6 +124,23 @@ export function useQuran(): {
         }
     }
 
+    async function downloadJuz(
+        juzNumber: number,
+        onProgress?: (percent: number) => void
+    ): Promise<void> {
+        if (juzNumber < 1 || juzNumber > 30) return;
+        isLoading.value = true;
+        seedProgress.value = 0;
+        try {
+            await seedPagesForJuz(juzNumber, (percent: number) => {
+                seedProgress.value = percent;
+            });
+            onProgress?.(100);
+        } finally {
+            isLoading.value = false;
+        }
+    }
+
     async function getDownloadedPageCount(): Promise<number> {
         const pages = await getDownloadedPageNumbers();
         return pages.length;
@@ -94,8 +149,12 @@ export function useQuran(): {
     return {
         isLoading,
         seedProgress,
+        setupChoicePending,
         initializeDatabase,
+        runQuickSetup,
+        runFullSetup,
         downloadRemainingPages,
+        downloadJuz,
         getDownloadedPageCount,
         getSurahList,
         getPageData,
