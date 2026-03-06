@@ -5,16 +5,18 @@ const router = useRouter();
 const route = useRoute();
 
 const navItems = [
-    { path: '/', name: 'Home', icon: '🏠' },
+    { path: '/', name: 'Quran', icon: '📖' },
     { path: '/progress', name: 'Progress', icon: '📊' },
+    { path: '/pengaturan', name: 'Pengaturan', icon: '⚙️' },
 ];
 
-const isActive = (path: string) => {
+function isActive(path: string): boolean {
     if (path === '/') return route.path === '/';
     return route.path.startsWith(path);
-};
+}
 
-function goTo(path: string) {
+function goTo(path: string): void {
+    if (route.path === path) return;
     router.push(path);
 }
 </script>
@@ -27,9 +29,10 @@ function goTo(path: string) {
             type="button"
             class="nav-item"
             :class="{ active: isActive(item.path) }"
+            :aria-label="item.name"
             @click="goTo(item.path)"
         >
-            <span class="icon">{{ item.icon }}</span>
+            <span class="icon" aria-hidden="true">{{ item.icon }}</span>
             <span class="label">{{ item.name }}</span>
         </button>
     </nav>
@@ -53,7 +56,10 @@ function goTo(path: string) {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 0.25rem;
+    min-width: 44px;
+    min-height: 44px;
     padding: 0.5rem 1rem;
     border: none;
     background: none;
@@ -61,15 +67,21 @@ function goTo(path: string) {
     color: var(--muted, #64748b);
     font-size: 0.75rem;
     border-radius: 0.5rem;
+    transition: color 0.2s ease, background-color 0.2s ease;
 }
 .nav-item:hover {
     color: var(--text, #0f172a);
 }
 .nav-item.active {
-    color: var(--accent, #0d9488);
+    color: #1a7a4a;
     font-weight: 600;
+    background: rgba(26, 122, 74, 0.08);
 }
 .icon {
     font-size: 1.25rem;
+    transition: transform 0.2s ease;
+}
+.nav-item.active .icon {
+    transform: scale(1.05);
 }
 </style>

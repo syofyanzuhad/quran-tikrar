@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { Ayah } from '../../types/quran';
+import { formatTranslationText } from '../../utils/translationText';
 import TikrarCounter from './TikrarCounter.vue';
 
 const props = defineProps<{
@@ -10,6 +11,9 @@ const props = defineProps<{
 }>();
 
 const verseNumber = computed(() => props.ayah.verseNumber);
+const translationDisplay = computed(() =>
+    formatTranslationText(props.ayah.textIndoTranslation ?? '')
+);
 </script>
 
 <template>
@@ -21,7 +25,7 @@ const verseNumber = computed(() => props.ayah.verseNumber);
             <span class="ayah-num">{{ verseNumber }}</span>
             <span class="ayah-text">{{ ayah.textArab }}</span>
         </div>
-        <p v-if="ayah.textIndoTranslation" class="ayah-translation">{{ ayah.textIndoTranslation }}</p>
+        <p v-if="translationDisplay" class="ayah-translation">{{ translationDisplay }}</p>
         <TikrarCounter
             :surah-number="surahId"
             :ayah-number="verseNumber"

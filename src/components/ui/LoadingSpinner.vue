@@ -47,4 +47,9 @@ defineProps<{
         transform: rotate(360deg);
     }
 }
+@media (prefers-reduced-motion: reduce) {
+    .spinner {
+        animation-duration: 1.5s;
+    }
+}
 </style>

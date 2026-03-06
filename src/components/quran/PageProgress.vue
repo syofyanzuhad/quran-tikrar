@@ -20,12 +20,12 @@ const displayTotal = computed(() => props.totalPages ?? 604);
 
 <template>
     <div class="page-progress">
-        <span class="page-num">Page {{ page }}</span>
+        <span class="page-num">Halaman {{ page }}</span>
         <span
             class="badge"
             :class="{ completed: isCompleted }"
         >
-            {{ isCompleted ? 'Done' : '—' }}
+            {{ isCompleted ? 'Selesai' : '—' }}
         </span>
         <span class="total">/ {{ displayTotal }}</span>
     </div>
