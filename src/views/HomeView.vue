@@ -114,8 +114,8 @@ watch(activeTab, (tab) => {
 <template>
     <div class="home-view">
         <header class="mb-4">
-            <h1 class="text-xl font-extrabold tracking-tight text-slate-900">Quran Tikrar</h1>
-            <p class="mt-1 text-sm text-slate-500">Baca dan hafal per halaman</p>
+            <h1 class="text-xl font-extrabold tracking-tight text-emerald-900">Quran Tikrar</h1>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Baca dan hafal per halaman</p>
         </header>
 
         <!-- Tabs -->
@@ -152,11 +152,13 @@ watch(activeTab, (tab) => {
                 <div class="skeleton-input" />
                 <ul class="space-y-2">
                     <li v-for="i in 8" :key="i" class="surah-card skeleton-card">
-                        <div class="flex w-full items-start gap-3">
+                        <div class="flex w-full items-center gap-3">
                             <span class="skeleton-num" />
                             <div class="skeleton-content">
-                                <div class="skeleton-line skeleton-title" />
-                                <div class="skeleton-line skeleton-arabic" dir="rtl" />
+                                <div class="flex items-center justify-between">
+                                    <div class="skeleton-line skeleton-title" />
+                                    <div class="skeleton-line skeleton-arabic" />
+                                </div>
                                 <div class="skeleton-line skeleton-meta" />
                                 <div class="skeleton-progress" />
                             </div>
@@ -184,25 +186,21 @@ watch(activeTab, (tab) => {
                             class="surah-card"
                             @click="openSurah(surah.id)"
                         >
-                            <div class="flex w-full items-start gap-3">
+                            <div class="flex w-full items-center gap-3">
                                 <span class="num">{{ surah.id }}</span>
                                 <div class="min-w-0 flex-1 text-left">
-                                    <div class="flex items-center justify-between gap-2">
-                                        <span class="name">{{ surah.nameSimple }}</span>
-                                        <span
-                                            class="badge"
-                                            :class="surah.revelationPlace === 'makkah' ? 'badge-makkiyah' : 'badge-madaniyah'"
-                                        >
-                                            {{ surah.revelationPlace === 'makkah' ? 'Makkiyah' : 'Madaniyah' }}
-                                        </span>
+                                    <div class="flex items-center justify-between">
+                                        <p class="font-semibold">{{ surah.nameSimple }}</p>
+                                        <p class="arabic text-[1.15rem] font-medium text-emerald-700 dark:text-emerald-400" dir="rtl">
+                                            {{ surah.nameArabic }}
+                                        </p>
                                     </div>
-                                    <p class="arabic mt-0.5 text-right text-lg" dir="rtl">
-                                        {{ surah.nameArabic }}
+                                    <p class="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                        {{ surah.revelationPlace === 'makkah' ? 'Makkiyah' : 'Madaniyah' }} • {{ surah.versesCount }} ayat
                                     </p>
-                                    <p class="text-xs text-slate-500">{{ surah.versesCount }} ayat</p>
-                                    <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                                    <div class="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-slate-200/70">
                                         <div
-                                            class="h-full rounded-full bg-[#1a7a4a] transition-[width] duration-300"
+                                            class="h-full rounded-full bg-emerald-500 transition-[width] duration-300"
                                             :style="{ width: `${getSurahProgress(surah.id)}%` }"
                                         />
                                     </div>
@@ -224,7 +222,7 @@ watch(activeTab, (tab) => {
                     @click="openPage(item.firstPage)"
                 >
                     <p class="font-bold text-slate-900">Juz {{ item.juzNumber }}</p>
-                    <p class="mt-1 text-xs text-slate-600">{{ item.surahRange }}</p>
+                    <p class="mt-1 text-xs text-slate-600 dark:text-slate-300">{{ item.surahRange }}</p>
                     <p class="mt-2 text-sm font-semibold text-[#1a7a4a]">{{ item.percentage.toFixed(0) }}%</p>
                 </button>
             </section>
@@ -232,7 +230,7 @@ watch(activeTab, (tab) => {
             <!-- Tab 3: Lanjutkan -->
             <section v-show="activeTab === 'continue'" class="flex flex-col items-center py-8">
                 <template v-if="lastPage != null">
-                    <p class="text-sm text-slate-600">Halaman terakhir yang dibuka</p>
+                    <p class="text-sm text-slate-600 dark:text-slate-300">Halaman terakhir yang dibuka</p>
                     <button
                         type="button"
                         class="continue-btn"
@@ -242,8 +240,8 @@ watch(activeTab, (tab) => {
                     </button>
                 </template>
                 <template v-else>
-                    <p class="text-center text-sm text-slate-600">Belum ada halaman terakhir.</p>
-                    <p class="mt-2 text-center text-xs text-slate-500">
+                    <p class="text-center text-sm text-slate-600 dark:text-slate-300">Belum ada halaman terakhir.</p>
+                    <p class="mt-2 text-center text-xs text-slate-500 dark:text-slate-400">
                         Pilih surah atau juz di tab lain, lalu buka halaman untuk mulai menghafal.
                     </p>
                 </template>
@@ -276,60 +274,51 @@ watch(activeTab, (tab) => {
 }
 .surah-card {
     width: 100%;
-    padding: 0.75rem 1rem;
+    padding: 0.625rem 0.875rem;
     border-radius: 0.75rem;
-    border: 1px solid #e2e8f0;
-    background: white;
+    border: 1px solid var(--border, #e2e8f0);
+    background: var(--surface, #ffffff);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     cursor: pointer;
     text-align: left;
-    transition: background 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
 }
 .surah-card:hover {
-    background: #f8fafc;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border-color: #cbd5e1;
 }
 .num {
     flex-shrink: 0;
-    width: 2.25rem;
-    height: 2.25rem;
+    width: 2rem;
+    height: 2rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: #1a7a4a;
+    background: linear-gradient(135deg, #10b981, #059669);
     color: white;
     border-radius: 0.5rem;
     font-weight: 600;
-    font-size: 0.875rem;
-}
-.badge {
-    flex-shrink: 0;
-    padding: 0.125rem 0.5rem;
-    border-radius: 9999px;
-    font-size: 0.625rem;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-.badge-makkiyah {
-    background: #fef3c7;
-    color: #92400e;
-}
-.badge-madaniyah {
-    background: #dbeafe;
-    color: #1e40af;
+    font-size: 0.8125rem;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.25);
 }
 .arabic {
-    font-family: 'Uthmanic Hafs', 'Scheherazade New', serif;
+    font-family: 'Amiri', 'Uthmanic Hafs', 'Scheherazade New', serif;
 }
 .juz-card {
     padding: 1rem;
     border-radius: 0.75rem;
-    border: 1px solid #e2e8f0;
-    background: white;
+    border: 1px solid var(--border, #e2e8f0);
+    background: var(--surface, #ffffff);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
     text-align: left;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
 }
 .juz-card:hover {
-    background: #f8fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: #cbd5e1;
 }
 .juz-card.completed {
     background: #dcfce7;
@@ -375,8 +364,8 @@ watch(activeTab, (tab) => {
 }
 .skeleton-num {
     display: block;
-    width: 2.25rem;
-    height: 2.25rem;
+    width: 2rem;
+    height: 2rem;
     flex-shrink: 0;
 }
 .skeleton-content {
@@ -388,17 +377,16 @@ watch(activeTab, (tab) => {
     height: 1rem;
 }
 .skeleton-arabic {
-    width: 8rem;
+    width: 4rem;
     height: 1.25rem;
-    margin-top: 0.5rem;
 }
 .skeleton-meta {
-    width: 4rem;
-    height: 0.75rem;
-    margin-top: 0.5rem;
+    width: 8rem;
+    height: 0.625rem;
+    margin-top: 0.375rem;
 }
 .skeleton-progress {
-    height: 0.375rem;
+    height: 0.25rem;
     width: 100%;
     margin-top: 0.5rem;
 }

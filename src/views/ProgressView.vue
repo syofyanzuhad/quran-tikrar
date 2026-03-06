@@ -176,7 +176,7 @@ onMounted(async () => {
     <div class="px-4 pb-24 pt-4">
         <header class="mb-4">
             <h1 class="text-xl font-extrabold tracking-tight text-slate-900">Progress</h1>
-            <p class="mt-1 text-sm text-slate-500">Tracking hafalan with Tikrar (offline)</p>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Tracking hafalan with Tikrar (offline)</p>
         </header>
 
         <LoadingSpinner v-if="loading" size="lg" class="mx-auto my-12" />
@@ -205,7 +205,7 @@ onMounted(async () => {
         >
             <div class="flex items-start justify-between gap-4">
                 <div class="min-w-0">
-                    <p class="text-sm font-semibold text-slate-600">Ringkasan</p>
+                    <p class="text-sm font-semibold text-slate-600 dark:text-slate-300">Ringkasan</p>
                     <p class="mt-1 text-2xl font-extrabold tabular-nums text-slate-900">
                         {{ Math.round(completedPagesAnimated) }} dari 604 Halaman
                     </p>
@@ -214,7 +214,7 @@ onMounted(async () => {
                     </p>
                 </div>
                 <div class="text-right">
-                    <p class="text-sm font-semibold text-slate-600">Streak</p>
+                    <p class="text-sm font-semibold text-slate-600 dark:text-slate-300">Streak</p>
                     <p class="mt-1 text-lg font-bold tabular-nums text-slate-900">
                         🔥 {{ streakDays }} Hari Berturut-turut
                     </p>
@@ -240,7 +240,7 @@ onMounted(async () => {
                 <h2 class="text-sm font-semibold tracking-wide text-slate-600 uppercase">
                     Progress per Juz
                 </h2>
-                <p class="text-xs text-slate-500">Tap untuk detail</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Tap untuk detail</p>
             </div>
 
             <div class="grid grid-cols-6 gap-2">
@@ -258,11 +258,11 @@ onMounted(async () => {
                     ]"
                     @click="openJuz(tile.juzNumber)"
                 >
-                    <span class="absolute left-2 top-2 text-xs font-semibold text-slate-600">
+                    <span class="absolute left-2 top-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
                         {{ tile.juzNumber }}
                     </span>
                     <span class="sr-only">Juz {{ tile.juzNumber }}</span>
-                    <span class="absolute bottom-2 right-2 text-[10px] font-semibold text-slate-600">
+                    <span class="absolute bottom-2 right-2 text-[10px] font-semibold text-slate-600 dark:text-slate-300">
                         {{ tile.percentage.toFixed(0) }}%
                     </span>
                 </button>
@@ -275,11 +275,11 @@ onMounted(async () => {
                 <h2 class="text-sm font-semibold tracking-wide text-slate-600 uppercase">
                     Halaman Terakhir Dipelajari
                 </h2>
-                <p class="text-xs text-slate-500">5 terakhir</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">5 terakhir</p>
             </div>
 
             <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                <div v-if="recent.length === 0" class="p-4 text-sm text-slate-500">
+                <div v-if="recent.length === 0" class="p-4 text-sm text-slate-500 dark:text-slate-400">
                     Belum ada aktivitas.
                 </div>
                 <ul v-else class="divide-y divide-slate-200">
@@ -288,7 +288,7 @@ onMounted(async () => {
                             <p class="truncate text-sm font-semibold text-slate-900">
                                 Page {{ p.pageNumber }} · {{ surahById[p.surahId]?.nameSimple ?? `Surah ${p.surahId}` }}
                             </p>
-                            <p class="mt-1 text-xs text-slate-500">
+                            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
                                 {{ new Date(p.lastStudiedAt).toLocaleString() }} · reps:
                                 <span class="font-semibold tabular-nums text-slate-700">{{ p.totalReps }}</span>
                             </p>
@@ -311,7 +311,7 @@ onMounted(async () => {
                 <h2 class="text-sm font-semibold tracking-wide text-slate-600 uppercase">
                     Kalender Aktivitas
                 </h2>
-                <p class="text-xs text-slate-500">84 hari terakhir</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">84 hari terakhir</p>
             </div>
 
             <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -326,7 +326,7 @@ onMounted(async () => {
                         />
                     </template>
                 </div>
-                <div class="mt-3 flex items-center justify-between text-xs text-slate-500">
+                <div class="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                     <span>Less</span>
                     <div class="flex items-center gap-1">
                         <span class="h-3 w-3 rounded-sm bg-slate-100" />
@@ -349,7 +349,7 @@ onMounted(async () => {
             <div class="w-full max-w-2xl rounded-2xl bg-white p-4 shadow-xl">
                 <div class="flex items-start justify-between gap-3">
                     <div>
-                        <p class="text-sm font-semibold text-slate-600">Juz {{ selectedJuz }}</p>
+                        <p class="text-sm font-semibold text-slate-600 dark:text-slate-300">Juz {{ selectedJuz }}</p>
                         <p class="mt-1 text-lg font-bold tabular-nums text-slate-900">
                             {{ selectedJuzProgress.completedPages }} / {{ selectedJuzProgress.totalPages }} halaman
                             ({{ selectedJuzProgress.percentage.toFixed(1) }}%)
@@ -375,7 +375,7 @@ onMounted(async () => {
                                 <p class="truncate text-sm font-semibold text-slate-900">
                                     Page {{ p.pageNumber }} · {{ surahById[p.surahId]?.nameSimple ?? `Surah ${p.surahId}` }}
                                 </p>
-                                <p class="mt-1 text-xs text-slate-500">
+                                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
                                     {{ p.isCompleted ? 'Selesai' : p.blocksCompleted > 0 ? 'Sedang' : 'Belum' }}
                                     · reps: <span class="font-semibold tabular-nums">{{ p.totalReps }}</span>
                                 </p>

@@ -150,7 +150,7 @@ const APP_VERSION = '1.0.0';
     <div class="settings-view">
         <header class="mb-4">
             <h1 class="text-xl font-extrabold tracking-tight text-slate-900">Pengaturan</h1>
-            <p class="mt-1 text-sm text-slate-500">Preferensi aplikasi</p>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Preferensi aplikasi</p>
         </header>
 
         <!-- Section 1: Target Pengulangan -->
@@ -178,7 +178,7 @@ const APP_VERSION = '1.0.0';
                     class="mt-1 w-full max-w-[8rem] rounded-lg border border-slate-200 px-3 py-2 text-sm"
                 />
             </div>
-            <p class="mt-3 text-sm text-slate-600">{{ previewTargetText }}</p>
+            <p class="mt-3 text-sm text-slate-600 dark:text-slate-300">{{ previewTargetText }}</p>
         </section>
 
         <!-- Section 2: Tampilan Teks Arab -->
@@ -256,7 +256,7 @@ const APP_VERSION = '1.0.0';
                     />
                     <div>
                         <span class="font-medium text-slate-900">Per Blok</span>
-                        <p class="mt-1 text-xs text-slate-500">
+                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
                             Hafal blok 1, selesai lalu lanjut blok 2, dan seterusnya. Satu blok selesai sebelum pindah.
                         </p>
                     </div>
@@ -270,7 +270,7 @@ const APP_VERSION = '1.0.0';
                     />
                     <div>
                         <span class="font-medium text-slate-900">Kumulatif</span>
-                        <p class="mt-1 text-xs text-slate-500">
+                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
                             Blok 1, lalu blok 1+2, lalu 1+2+3, lalu 1+2+3+4. Setelah empat blok selesai, ada sesi gabungan seluruh halaman.
                         </p>
                     </div>
@@ -282,7 +282,7 @@ const APP_VERSION = '1.0.0';
         <section class="section">
             <h2 class="section-title">Data & Cache</h2>
             <div class="space-y-3">
-                <p class="text-sm text-slate-600">
+                <p class="text-sm text-slate-600 dark:text-slate-300">
                     Data Quran:
                     <template v-if="storageStatus === 'loading'"> Memuat… </template>
                     <template v-else-if="storageStatus === 'ready'">
@@ -322,7 +322,7 @@ const APP_VERSION = '1.0.0';
         <!-- Section 5: Tentang -->
         <section class="section">
             <h2 class="section-title">Tentang</h2>
-            <div class="space-y-2 text-sm text-slate-600">
+            <div class="space-y-2 text-sm text-slate-600 dark:text-slate-300">
                 <p>Quran Tikrar — v{{ APP_VERSION }}</p>
                 <p>Data ayat dari <a href="https://quran.com" target="_blank" rel="noopener" class="text-[#1a7a4a] underline">Quran.com</a> API.</p>
                 <p>
@@ -335,7 +335,7 @@ const APP_VERSION = '1.0.0';
         <div v-if="showResetConfirm" class="modal-overlay" @click.self="closeResetConfirm">
             <div class="modal">
                 <h3 class="text-lg font-semibold text-slate-900">Reset Semua Progress</h3>
-                <p class="mt-2 text-sm text-slate-600">
+                <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
                     Semua progress hafalan akan dihapus. Ketik <strong>RESET</strong> untuk konfirmasi.
                 </p>
                 <input
@@ -364,7 +364,7 @@ const APP_VERSION = '1.0.0';
         <div v-if="showClearCacheConfirm" class="modal-overlay" @click.self="closeClearCacheConfirm">
             <div class="modal">
                 <h3 class="text-lg font-semibold text-slate-900">Hapus Cache & Unduh Ulang</h3>
-                <p class="mt-2 text-sm text-slate-600">
+                <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
                     Semua data Quran akan dihapus dan diunduh ulang. Pastikan koneksi internet tersedia.
                 </p>
                 <div class="mt-4 flex gap-2">
