@@ -1,5 +1,13 @@
+@font-face {
+  font-family: 'KFGQPC Uthmanic Hafs';
+  src: url('/fonts/UthmanicHafs_v22.woff2') format('woff2');
+  font-display: swap;
+}
+
 :root {
   --arab-font-size: 1.875rem;
+  --mushaf-font-size: 18px;
+  --mushaf-ink-color: #1A1209;
   font-family: 'Nunito', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
