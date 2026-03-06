@@ -24,7 +24,7 @@ const { getPageData } = useQuran();
 const tikrar = useTikrar();
 
 // Define useToast with safe fallback
-let showToast = (msg: string, opts?: any) => alert(msg);
+let showToast = (msg: string, _opts?: any) => alert(msg);
 try {
   const toastCtx = useToast();
   if (toastCtx && 'addToast' in toastCtx) {
@@ -156,7 +156,7 @@ onMounted(() => {
 // -- SWIPE TO FLIP --
 const readerEl = ref<HTMLElement | null>(null);
 useSwipe(readerEl, {
-  onSwipeEnd(e, direction) {
+  onSwipeEnd(_e, direction) {
     if (direction === 'left') goToPage(pageNumber.value + 1);
     else if (direction === 'right') goToPage(pageNumber.value - 1);
   },

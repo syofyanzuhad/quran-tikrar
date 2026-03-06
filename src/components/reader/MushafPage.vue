@@ -33,7 +33,7 @@ const getRingStrokeDashoffset = (rep: number, target: number) => {
   return strokeDasharray - progress * strokeDasharray
 }
 
-const isDone = (index: number) => props.reps[index] >= props.targetReps
+const isDone = (index: number) => (props.reps[index] || 0) >= props.targetReps
 
 const arabicBlockNumbers = ['١', '٢', '٣', '٤']
 
@@ -138,8 +138,8 @@ const arabicBlockNumbers = ['١', '٢', '٣', '٤']
               :style="{
                 backgroundColor: 'rgba(255, 255, 255, 0.82)',
                 backdropFilter: 'blur(6px)',
-                border: `1px solid ${BLOCK_COLORS[block.blockIndex].mushafBorder}33`,
-                boxShadow: `0 2px 12px ${BLOCK_COLORS[block.blockIndex].mushafBorder}15`
+                border: `1px solid ${BLOCK_COLORS[block.blockIndex]?.mushafBorder}33`,
+                boxShadow: `0 2px 12px ${BLOCK_COLORS[block.blockIndex]?.mushafBorder}15`
               }"
               @click.stop
             >
@@ -172,7 +172,7 @@ const arabicBlockNumbers = ['١', '٢', '٣', '٤']
                   <span class="text-[11px] text-slate-500 font-medium">Blok {{ block.blockIndex + 1 }}</span>
                   <div class="flex items-center gap-1.5 mt-0.5 w-[70px]">
                     <div class="h-1 bg-slate-200 rounded-full flex-1 overflow-hidden">
-                      <div class="h-full rounded-full transition-all duration-300" :style="{ width: `${Math.min(100, (reps[block.blockIndex] / targetReps) * 100)}%`, backgroundColor: BLOCK_COLORS[block.blockIndex]?.mushafBorder || '#F5C842' }"></div>
+                      <div class="h-full rounded-full transition-all duration-300" :style="{ width: `${Math.min(100, ((reps[block.blockIndex] || 0) / targetReps) * 100)}%`, backgroundColor: BLOCK_COLORS[block.blockIndex]?.mushafBorder || '#F5C842' }"></div>
                     </div>
                   </div>
                   <span class="text-[9px] text-slate-400 mt-0.5">{{ reps[block.blockIndex] }}/{{ targetReps }} kali</span>
@@ -182,7 +182,7 @@ const arabicBlockNumbers = ['١', '٢', '٣', '٤']
               <!-- Controls -->
               <div class="flex items-center gap-2 shrink-0">
                 <button 
-                  v-if="reps[block.blockIndex] > 0"
+                  v-if="(reps[block.blockIndex] || 0) > 0"
                   @click.stop="emit('reset-block', block.blockIndex)"
                   class="shrink-0 p-0 w-[26px] h-[26px] rounded-full flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors"
                 >
