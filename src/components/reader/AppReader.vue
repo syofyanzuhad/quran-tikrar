@@ -8,7 +8,13 @@ export interface Ayah {
   arabic?: string
   text?: string
   translation?: string
+  verseNumber?: number
   [key: string]: any
+}
+
+const toEasternArabic = (num: number) => {
+  const digits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩']
+  return num.toString().replace(/\d/g, (d) => digits[parseInt(d, 10)] ?? d)
 }
 
 const props = defineProps<{
@@ -116,15 +122,16 @@ const getRingStrokeDashoffset = (rep: number, target: number) => {
               <span 
                 class="inline-flex items-center justify-center w-6 h-6 rounded-full mx-1 text-xs font-sans font-bold translate-y-[-2px]"
                 :style="{ backgroundColor: block.color?.soft, color: block.color?.accent }"
+                dir="ltr"
               >
-                {{ ayahId }}
+                {{ toEasternArabic(ayahsMap[ayahId]?.verseNumber || ayahId) }}
               </span>
             </span>
           </div>
           
           <div v-if="showTranslation" class="mt-4 text-sm text-slate-600 leading-relaxed border-t border-slate-200/50 pt-3 text-left">
              <div v-for="ayahId in block.ayahIds" :key="'trans'+ayahId" class="mb-2">
-               <span class="font-semibold text-slate-400 mr-1">{{ ayahId }}.</span>
+               <span class="font-semibold text-slate-400 mr-1">{{ ayahsMap[ayahId]?.verseNumber || ayahId }}.</span>
                <span v-html="ayahsMap[ayahId]?.translation || 'Terjemahan tidak tersedia.'"></span>
              </div>
           </div>

@@ -35,7 +35,7 @@ try {
 }
 
 // -- UI MODE --
-const uiMode = ref<ReaderUIMode>('app');
+const uiMode = ref<ReaderUIMode>('mushaf');
 
 onMounted(() => {
   const saved = localStorage.getItem('tikrar-reader-ui-mode') as ReaderUIMode | null;
@@ -58,6 +58,7 @@ const pageNumber = computed(() => {
 const ayahs = ref<import('../types/quran').Ayah[]>([]);
 const blocks = ref<import('../types/quran').TikrarBlock[]>([]);
 const loading = ref(true);
+const surahNameArabic = ref('سورة');
 
 function saveLastPage(page: number): void {
   try {
@@ -81,6 +82,18 @@ async function loadPage(p: number): Promise<void> {
     const data = await getPageData(p);
     ayahs.value = data.ayahs;
     blocks.value = data.blocks;
+    
+    if (data.ayahs.length > 0) {
+      const db = await import('../db').then(m => m.db);
+      const firstAyah = data.ayahs[0];
+      if (firstAyah && firstAyah.surahId) {
+        const surah = await db.surahs.get(firstAyah.surahId);
+        if (surah) {
+          surahNameArabic.value = `سُورَةُ ${surah.nameArabic}`;
+        }
+      }
+    }
+
     tikrar.startSession(p);
   } finally {
     loading.value = false;
@@ -121,11 +134,6 @@ const mappedReps = computed<number[]>(() => {
     const id = `page-${pageNumber.value}-block-${i}`;
     return tikrar.sessionReps.value[id] || 0;
   });
-});
-
-const surahNameArabic = computed(() => {
-  // Placeholder logic or getting it from the first ayah's injected context
-  return ayahs.value.length > 0 ? "سورة" : "سورة";
 });
 
 // -- HANDLERS FOR READERS --
