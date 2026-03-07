@@ -127,18 +127,30 @@ const toggleLegend = () => { isLegendExpanded.value = !isLegendExpanded.value }
 
             <!-- Lines (v-memo for performance) -->
             <div class="flex-1 flex flex-col pl-4 pt-1 z-10 relative">
-              <MushafLine
-                v-for="line in block.lines"
-                :key="line.lineNumber"
-                :line="line"
-                :blockColor="getBlockColorSafe(block.blockIndex) || getBlockColorSafe(0)!"
-                :isActiveBlock="activeBlockIndex === block.blockIndex"
-                :fontSizeScale="fontSizeScale"
-                v-memo="[activeBlockIndex === block.blockIndex, isDone(block.blockIndex), fontSizeScale, blockMode, isDark]"
-                :style="{
-                  opacity: activeBlockIndex !== block.blockIndex && isDone(block.blockIndex) ? 0.75 : 1
-                }"
-              />
+              <template v-for="line in block.lines" :key="line.lineNumber">
+                <!-- Surah Break Banner (if line starts a new surah) -->
+                <div 
+                  v-if="line.surahBreakArabic"
+                  class="my-2 py-1.5 w-full flex items-center justify-center bg-[url('data:image/svg+xml;utf8,<svg width=\'100%\' height=\'100%\' xmlns=\'http://www.w3.org/2000/svg\'><rect width=\'100%\' height=\'100%\' fill=\'none\' stroke=\'%23C4A882\' stroke-width=\'2\' stroke-dasharray=\'4 2\'/></svg>')] bg-cover relative"
+                  style="border-radius: 4px; border: 1px solid #E8DCC8; background-color: #FEFCF5;"
+                >
+                   <div class="absolute inset-x-0 h-[1px] top-1/2 -translate-y-1/2 bg-[#E8DCC8]"></div>
+                   <div class="relative px-6 bg-[#FEFCF5] font-arabic text-[#8B7355] font-bold text-base z-10">
+                     سُورَةُ {{ line.surahBreakArabic }}
+                   </div>
+                </div>
+
+                <MushafLine
+                  :line="line"
+                  :blockColor="getBlockColorSafe(block.blockIndex) || getBlockColorSafe(0)!"
+                  :isActiveBlock="activeBlockIndex === block.blockIndex"
+                  :fontSizeScale="fontSizeScale"
+                  v-memo="[line, activeBlockIndex === block.blockIndex, isDone(block.blockIndex), fontSizeScale, blockMode, isDark]"
+                  :style="{
+                    opacity: activeBlockIndex !== block.blockIndex && isDone(block.blockIndex) ? 0.75 : 1
+                  }"
+                />
+              </template>
             </div>
 
             <!-- Tikrar Counter Strip (Only for active block) -->

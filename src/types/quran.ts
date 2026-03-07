@@ -81,6 +81,7 @@ export interface MushafLine {
     words: QuranWord[];
     isBismillah: boolean;    // true for the Basmala line
     isAyahEnd: boolean;      // true if this line ends an ayah
+    surahBreakArabic?: string; // If this line starts a new Surah, this holds its Arabic name
     blockIndex: number;      // 0–3 which Tikrar color block this line belongs to
 }
 

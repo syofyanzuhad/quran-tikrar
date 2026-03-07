@@ -53,10 +53,20 @@ export function useMushafPage() {
     }
 
     const wordsByLine = new Map<number, QuranWord[]>()
+    
     for (const w of rawWords) {
         if (!wordsByLine.has(w.lineNumber)) {
             wordsByLine.set(w.lineNumber, [])
         }
+        
+        // Tag the start of a new surah (happens at verse 1)
+        if (w.charType !== 'end' && w.charType !== 'pause' && w.charType !== 'sajdah') {
+            if (w.verseNumber === 1 && !wordsByLine.get(w.lineNumber)!.some(existing => (existing as any)._isSurahBreak)) {
+                // We add a dummy tag to the first word so that later we can set the line's surah break
+                (w as any)._isSurahBreak = true;
+            }
+        }
+
         wordsByLine.get(w.lineNumber)!.push(w)
     }
 
@@ -83,12 +93,25 @@ export function useMushafPage() {
              }
         }
 
+        let surahBreakArabic: string | undefined = undefined;
+
+        if (words.some(w => (w as any)._isSurahBreak)) {
+            const validWord = words.find(w => w.charType !== 'end' && w.charType !== 'pause');
+            if (validWord) {
+                const surah = await db.surahs.get(validWord.surahId);
+                if (surah) {
+                    surahBreakArabic = surah.nameArabic;
+                }
+            }
+        }
+
         lines.push({
             lineNumber: i,
             pageNumber,
             words,
             isBismillah,
             isAyahEnd,
+            surahBreakArabic,
             blockIndex: getBlockForLine(i)
         })
     }

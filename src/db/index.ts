@@ -127,6 +127,9 @@ export class QuranDatabase extends Dexie {
         const words = await this.words.where('pageNumber').equals(pageNumber).toArray();
         return words.sort((a, b) => {
             if (a.lineNumber === b.lineNumber) {
+                if (a.ayahId !== b.ayahId) {
+                    return a.ayahId - b.ayahId;
+                }
                 return a.position - b.position;
             }
             return a.lineNumber - b.lineNumber;
@@ -151,7 +154,7 @@ export class QuranDatabase extends Dexie {
                 lineNumber: i,
                 pageNumber,
                 words: [],
-                isBismillah: false, // Assuming it's set manually later or by checking content
+                isBismillah: false,
                 isAyahEnd: false,
                 blockIndex
             });
@@ -161,19 +164,49 @@ export class QuranDatabase extends Dexie {
             const line = linesMap.get(word.lineNumber);
             if (line) {
                 line.words.push(word);
+                // Detect Surah breaks (a new surah starting on a line)
+                // A Surah break happens exactly when we hit Verse 1 of any Surah.
+                if (word.charType !== 'end' && word.charType !== 'pause' && word.charType !== 'sajdah') {
+                    if (word.verseNumber === 1 && line.surahBreakArabic === undefined) {
+                        // Mark this line as containing a surah break
+                        // We only set it once per line to avoid overwriting if a line has multiple words
+                        line.surahBreakArabic = ''; 
+                    }
+                }
             }
         });
         
-        // Post process to set isAyahEnd
-        return Array.from(linesMap.values()).map(line => {
+        // Post process to set isAyahEnd and populate Arabic Surah Names
+        const processedLines = await Promise.all(Array.from(linesMap.values()).map(async line => {
             if (line.words.length > 0) {
                 const lastWord = line.words[line.words.length - 1];
                 if (lastWord && lastWord.charType === 'end') {
                     line.isAyahEnd = true;
                 }
+
+                // If this line was marked as a surah break, fetch its Arabic name
+                if (line.surahBreakArabic !== undefined) {
+                    const validWord = line.words.find(w => w.charType !== 'end' && w.charType !== 'pause');
+                    if (validWord) {
+                        const surah = await this.surahs.get(validWord.surahId);
+                        if (surah) {
+                            line.surahBreakArabic = surah.nameArabic;
+                        }
+                    }
+                }
+                
+                // Detect standalone Bismillah lines (typically less than 5 words containing 'بسم الله')
+                if (line.words.length > 0 && line.words.length <= 4 && !line.surahBreakArabic) {
+                     const textString = line.words.map(w => w.textUthmani).join(' ').trim();
+                     if (textString.includes('بِسْمِ ٱللَّهِ') || textString.includes('بسم الله')) {
+                         line.isBismillah = true;
+                     }
+                }
             }
             return line;
-        });
+        }));
+        
+        return processedLines;
     }
 
     /**
