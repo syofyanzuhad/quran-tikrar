@@ -221,7 +221,7 @@ watch(activeTab, (tab) => {
                     :class="{ completed: item.status === 'completed' }"
                     @click="openPage(item.firstPage)"
                 >
-                    <p class="font-bold text-slate-900">Juz {{ item.juzNumber }}</p>
+                    <p class="font-bold">Juz {{ item.juzNumber }}</p>
                     <p class="mt-1 text-xs text-slate-600 dark:text-slate-300">{{ item.surahRange }}</p>
                     <p class="mt-2 text-sm font-semibold text-[#1a7a4a]">{{ item.percentage.toFixed(0) }}%</p>
                 </button>

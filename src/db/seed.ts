@@ -135,28 +135,51 @@ function splitIntoBlocks(ayahIds: number[]): number[][] {
  * Fetch verses for one page, save ayahs and create 4 tikrar blocks.
  */
 export async function seedPage(pageNumber: number): Promise<void> {
-    const url = `${API_BASE}/verses/by_page/${pageNumber}?words=false&translations=${TRANSLATION_ID}&fields=text_uthmani,page_number,juz_number,hizb_number`;
+    const url = `${API_BASE}/verses/by_page/${pageNumber}?words=true&word_fields=text_uthmani,line_number,position,char_type_name&per_page=50&translations=${TRANSLATION_ID}&fields=text_uthmani,page_number,juz_number,hizb_number`;
     const data = await fetchWithRetry<VersesApiResponse>(url);
     const verses = data.verses ?? [];
     if (verses.length === 0) return;
 
-    const ayahs: Ayah[] = verses.map((v) => {
-        const surahId = Number.parseInt(v.verse_key.split(':')[0] ?? '1', 10);
+    const ayahs: Ayah[] = [];
+    const wordsToInsert: QuranWord[] = [];
+
+    for (const v of verses) {
+        const surahId = v.chapter_id ?? Number.parseInt(v.verse_key.split(':')[0] ?? '1', 10);
         const translationText =
             v.translations?.find((t) => t.resource_id === TRANSLATION_ID)?.text ?? '';
-        return {
+        
+        ayahs.push({
             id: v.id,
             surahId,
             verseNumber: v.verse_number,
             textArab: v.text_uthmani ?? '',
             textIndoTranslation: translationText,
-            page: v.page_number,
-            juz: v.juz_number,
-            hizb: v.hizb_number,
-        };
-    });
+            page: v.page_number ?? pageNumber,
+            juz: v.juz_number ?? 1,
+            hizb: v.hizb_number ?? 1,
+        });
+
+        if (v.words && Array.isArray(v.words)) {
+            for (const w of v.words) {
+                wordsToInsert.push({
+                    id: w.id,
+                    ayahId: v.id,
+                    surahId: surahId,
+                    verseNumber: v.verse_number,
+                    position: w.position,
+                    textUthmani: w.text_uthmani,
+                    lineNumber: w.line_number, // The API provides standard 15 lines max per page
+                    pageNumber: pageNumber,
+                    charType: w.char_type_name
+                });
+            }
+        }
+    }
 
     await db.ayahs.bulkPut(ayahs);
+    if (wordsToInsert.length > 0) {
+        await db.words.bulkPut(wordsToInsert);
+    }
 
     const ayahIds = ayahs.map((a) => a.id);
     const blockAyahIds = splitIntoBlocks(ayahIds);
@@ -170,7 +193,11 @@ export async function seedPage(pageNumber: number): Promise<void> {
         targetReps: 20,
     }));
 
-    await db.tikrarBlocks.bulkPut(blocks);
+    // Only bulkPut tikrar blocks if they do not exist, to prevent overwriting user progress
+    const existingBlocks = await db.tikrarBlocks.where('pageNumber').equals(pageNumber).toArray();
+    if (existingBlocks.length === 0) {
+        await db.tikrarBlocks.bulkPut(blocks);
+    }
 }
 
 export type SeedProgressCallback = (percent: number) => void;
@@ -269,117 +296,22 @@ export const seedProgress = ref<{
 });
 
 /**
- * Fetch and seed words and ayahs for a specific page using API v4.
+ * Fix migrated word data for users who downloaded ayahs before words were introduced to Quick Setup.
  */
-export async function seedPageWords(pageNumber: number): Promise<void> {
-    const url = `${API_BASE}/verses/by_page/${pageNumber}?words=true&word_fields=text_uthmani,line_number,position,char_type_name&per_page=50&translations=${TRANSLATION_ID}`;
-    const data = await fetchWithRetry<VersesApiResponse>(url);
-    const verses = data.verses ?? [];
-    if (verses.length === 0) return;
+export async function fixMissingWords(onProgress?: SeedProgressCallback): Promise<void> {
+    const downloadedPages = await getDownloadedPageNumbers();
+    if (downloadedPages.length === 0) return;
 
-    const ayahs: Ayah[] = [];
-    const wordsToInsert: QuranWord[] = [];
+    const wordCount = await db.words.count();
+    if (wordCount > 0) return; // Assume migrated already
 
-    for (const v of verses) {
-        const surahId = v.chapter_id ?? Number.parseInt(v.verse_key.split(':')[0] ?? '1', 10);
-        const translationText = v.translations?.find((t) => t.resource_id === TRANSLATION_ID)?.text ?? '';
-        
-        ayahs.push({
-            id: v.id,
-            surahId,
-            verseNumber: v.verse_number,
-            textArab: v.text_uthmani ?? '',
-            textIndoTranslation: translationText,
-            page: v.page_number ?? pageNumber,
-            juz: v.juz_number ?? 1,
-            hizb: v.hizb_number ?? 1,
-        });
-
-        if (v.words && Array.isArray(v.words)) {
-            for (const w of v.words) {
-                wordsToInsert.push({
-                    id: w.id,
-                    ayahId: v.id,
-                    surahId: surahId,
-                    verseNumber: v.verse_number,
-                    position: w.position,
-                    textUthmani: w.text_uthmani,
-                    lineNumber: w.line_number,
-                    pageNumber: pageNumber,
-                    charType: w.char_type_name
-                });
-            }
+    const total = downloadedPages.length;
+    for (let i = 0; i < total; i++) {
+        await seedPage(downloadedPages[i]!); // seedPage will skip tikrar blocks if they exist
+        onProgress?.(Math.round(((i + 1) / total) * 100));
+        if (i < total - 1) {
+            await new Promise((r) => setTimeout(r, PAGE_DELAY_MS));
         }
     }
-
-    if (ayahs.length > 0) {
-        await db.ayahs.bulkPut(ayahs);
-    }
-    
-    if (wordsToInsert.length > 0) {
-        await db.words.bulkPut(wordsToInsert);
-    }
-}
-
-/**
- * Seed all pages 1-604 specifically for word-level layout support.
- */
-export async function seedAllWords(): Promise<void> {
-    seedProgress.value.phase = 'seeding';
-    seedProgress.value.current = 0;
-    seedProgress.value.failedPages = [];
-
-    const failed: number[] = [];
-
-    for (let page = 1; page <= TOTAL_PAGES; page++) {
-        try {
-            seedProgress.value.current = page;
-            seedProgress.value.percentage = Math.round((page / TOTAL_PAGES) * 100);
-            await seedPageWords(page);
-        } catch (error) {
-            console.error(`Failed to seed page ${page}:`, error);
-            failed.push(page);
-            seedProgress.value.failedPages.push(page);
-        }
-
-        if (page < TOTAL_PAGES) {
-            await new Promise((r) => setTimeout(r, 150));
-        }
-    }
-
-    // Retry failed pages once
-    if (failed.length > 0) {
-        for (const page of failed) {
-            try {
-                await seedPageWords(page);
-                // Remove from failed tracking if successful on retry
-                const updatedFailures = seedProgress.value.failedPages.filter(p => p !== page);
-                seedProgress.value.failedPages = updatedFailures;
-            } catch (error) {
-                console.error(`Retry failed for page ${page}:`, error);
-            }
-        }
-    }
-
-    if (seedProgress.value.failedPages.length > 0) {
-        seedProgress.value.phase = 'error';
-    } else {
-        seedProgress.value.phase = 'done';
-        await db.meta.put({ key: 'words_seeded', value: true, seededAt: new Date() });
-    }
-}
-
-/**
- * Check if the word data has already been seeded natively to local storage schema.
- */
-export async function isWordDataSeeded(): Promise<boolean> {
-    const meta = await db.meta.get('words_seeded');
-    if (meta?.value === true) {
-        const wordCount = await db.words.count();
-        if (wordCount > 70000) {
-            return true;
-        }
-    }
-    return false;
 }
 

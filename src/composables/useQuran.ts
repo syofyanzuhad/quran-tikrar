@@ -7,8 +7,7 @@ import {
     seedRemainingPages,
     seedPagesForJuz,
     getDownloadedPageNumbers,
-    isWordDataSeeded,
-    seedAllWords,
+    fixMissingWords,
     seedProgress as wordSeedProgress
 } from '../db/seed';
 import type { Surah, Ayah, TikrarBlock } from '../types/quran';
@@ -53,13 +52,19 @@ export function useQuran(): {
                 return;
             }
             
-            const wordsSeeded = await isWordDataSeeded();
-            if (!wordsSeeded) {
+            try {
                 if (window.navigator.onLine) {
-                    await seedAllWords();
+                    await fixMissingWords((percent: number) => {
+                        seedProgress.value = percent;
+                    });
                 } else {
-                    alert('Connect to internet first to download Quran data. After that, the app works fully offline.');
+                    const wordCount = await db.words.count();
+                    if (wordCount === 0) {
+                        alert('Connect to internet first to download complete Quran data. After that, the app works fully offline.');
+                    }
                 }
+            } catch (e) {
+                console.warn('Failed to sync complete word data:', e);
             }
 
             seedProgress.value = 100;
@@ -87,7 +92,9 @@ export function useQuran(): {
         isLoading.value = true;
         seedProgress.value = 0;
         try {
-            await seedAllWords();
+            await seedRemainingPages((percent: number) => {
+                seedProgress.value = percent;
+            });
             seedProgress.value = 100;
         } finally {
             isLoading.value = false;
@@ -166,7 +173,7 @@ export function useQuran(): {
         initializeDatabase,
         runQuickSetup,
         runFullSetup,
-        seedAllWordData: seedAllWords,
+        seedAllWordData: async () => { await seedRemainingPages(); }, // maintained for compatibility if used elsewhere
         downloadRemainingPages,
         downloadJuz,
         getDownloadedPageCount,
