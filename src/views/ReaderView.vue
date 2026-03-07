@@ -5,7 +5,7 @@ import { useSwipe, useFullscreen } from '@vueuse/core';
 import AppReader from '../components/reader/AppReader.vue';
 import MushafReader from '../components/reader/MushafReader.vue';
 import type { ReaderUIMode, TikrarBlockUI } from '../types/reader';
-import { BLOCK_COLORS } from '../constants/blockColors';
+import { getBlockColor } from '../constants/blockColors';
 
 import { useQuran } from '../composables/useQuran';
 import { useTikrar } from '../composables/useTikrar';
@@ -97,7 +97,7 @@ const mappedBlocks = computed<TikrarBlockUI[]>(() => {
   return blocks.value.map((b, i) => ({
     index: i,
     colorKey: i === 0 ? 'yellow' : i === 1 ? 'green' : i === 2 ? 'blue' : 'orange',
-    color: (BLOCK_COLORS[i] || BLOCK_COLORS[0]) as any,
+    color: getBlockColor(i, settings ? settings.blockColorMode.value : 'default', settings?.darkMode.value) as any,
     labelArabic: ['١', '٢', '٣', '٤'][i] || '',
     labelLatin: `Blok ${i + 1}`,
     ayahIds: b.ayahIds,
@@ -142,7 +142,7 @@ onMounted(() => {
       const bg = uiMode.value === 'app' ? '#111827' : '#1A1209';
       const color = uiMode.value === 'app' ? '#FFFFFF' : '#F5DEB3';
       const currentIdx = e.blockIndex ?? 0;
-      showToast(`✅ Blok ${currentIdx + 1} selesai! Lanjut Blok ${currentIdx + 2}`, { style: { background: bg, color } });
+      showToast(`Blok ${currentIdx + 1} selesai! Lanjut Blok ${currentIdx + 2}`, { style: { background: bg, color } });
     }
   });
 
@@ -168,7 +168,9 @@ const { isFullscreen, toggle: toggleFullscreen } = useFullscreen(readerEl);
 </script>
 
 <template>
-  <div ref="readerEl" class="h-screen w-full flex flex-col transition-colors duration-300 overflow-hidden" :class="uiMode === 'app' ? 'bg-[#f8fafc]' : 'bg-[#E8E0D0]'">
+  <div ref="readerEl" class="w-full flex flex-col transition-colors duration-300 overflow-hidden" 
+       :class="[uiMode === 'app' ? 'bg-[#f8fafc]' : 'bg-[#E8E0D0]', isFullscreen ? 'h-screen fixed inset-0 z-50' : 'h-[100dvh]']"
+       :style="!isFullscreen ? { paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' } : {}">
     
     <!-- MODE TOGGLE BAR -->
     <div 
@@ -202,7 +204,7 @@ const { isFullscreen, toggle: toggleFullscreen } = useFullscreen(readerEl);
       <!-- FULLSCREEN TOGGLE -->
       <button 
         @click="toggleFullscreen"
-        class="absolute right-4 p-2 rounded-full transition-colors"
+        class="absolute right-4 p-2 rounded-full transition-colors bg-white dark:bg-slate-800"
         :class="uiMode === 'app' ? 'text-slate-400 hover:text-[#059669] hover:bg-slate-100' : 'text-[#B8AF98] hover:text-white hover:bg-black/20'"
         title="Toggle Fullscreen"
       >
@@ -240,31 +242,42 @@ const { isFullscreen, toggle: toggleFullscreen } = useFullscreen(readerEl);
       />
     </div>
 
-    <!-- PAGE NAVIGATION BAR -->
+    <!-- PAGE NAVIGATION PILL -->
     <div 
-      class="shrink-0 px-4 py-3 flex items-center justify-between transition-colors duration-300 border-t z-20"
-      :class="uiMode === 'app' ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#6B5B3E] border-[#5A4C34] text-[#F5DEB3]'"
+      class="absolute left-1/2 -translate-x-1/2 flex items-center justify-between rounded-full shadow-lg transition-colors border z-40 backdrop-blur-md"
+      :class="[
+        uiMode === 'app' ? 'bg-white/95 border-slate-200 text-slate-800' : 'bg-[#FDFBF7]/95 border-[#E8DCC8] text-[#8B7355]',
+        isFullscreen ? 'bottom-8' : 'bottom-[calc(5rem+env(safe-area-inset-bottom,0px))]'
+      ]"
+      style="width: max-content; padding: 0.35rem 0.5rem;"
     >
       <button 
         @click="goToPage(pageNumber - 1)"
-        class="w-10 h-10 flex items-center justify-center rounded-full transition-colors font-bold text-xl"
-        :class="uiMode === 'app' ? 'hover:bg-slate-100 disabled:opacity-30' : 'hover:bg-white/10 disabled:opacity-30'"
+        class="w-10 h-10 flex items-center justify-center rounded-full transition-colors font-bold text-xl active:scale-95"
+        :class="uiMode === 'app' ? 'hover:bg-slate-100 disabled:opacity-30 text-slate-600' : 'hover:bg-[#F5EEDB] disabled:opacity-30 text-[#8B7355]'"
         :disabled="pageNumber <= 1"
+        aria-label="Halaman sebelumnya"
       >
-        ←
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
       </button>
       
-      <div class="font-bold text-sm tracking-wide">
-        Halaman {{ pageNumber }}
+      <div 
+        class="font-bold text-sm tracking-wide px-4 cursor-pointer active:scale-95 transition-transform"
+        :class="uiMode === 'app' ? 'text-slate-800' : 'text-[#6B5B3E]'"
+        title="Lihat daftar surah/juz"
+        @click="$router.push('/')"
+      >
+        Hal {{ pageNumber }}
       </div>
       
       <button 
         @click="goToPage(pageNumber + 1)"
-        class="w-10 h-10 flex items-center justify-center rounded-full transition-colors font-bold text-xl"
-        :class="uiMode === 'app' ? 'hover:bg-slate-100 disabled:opacity-30' : 'hover:bg-white/10 disabled:opacity-30'"
+        class="w-10 h-10 flex items-center justify-center rounded-full transition-colors font-bold text-xl active:scale-95"
+        :class="uiMode === 'app' ? 'hover:bg-slate-100 disabled:opacity-30 text-slate-600' : 'hover:bg-[#F5EEDB] disabled:opacity-30 text-[#8B7355]'"
         :disabled="pageNumber >= TOTAL_PAGES"
+        aria-label="Halaman selanjutnya"
       >
-        →
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
       </button>
     </div>
 

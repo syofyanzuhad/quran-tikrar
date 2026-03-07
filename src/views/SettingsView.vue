@@ -299,11 +299,40 @@ function setUIMode(mode: ReaderUIMode) {
             </div>
         </section>
 
-        <!-- Section 2: Tampilan Teks Arab -->
+        <!-- Section 2: Tampilan Teks Arab & Warna Blok -->
         <section class="section">
-            <h2 class="section-title">Tampilan Teks Arab</h2>
-            <div class="space-y-3">
+            <h2 class="section-title">Warna & Tampilan Teks</h2>
+            <div class="space-y-4">
                 <div>
+                    <label class="block text-sm font-medium text-slate-700">Skema Warna Blok Tikrar</label>
+                    <div class="mt-2 flex flex-col gap-2 relative">
+                        <!-- Default Blue -->
+                        <div 
+                            class="relative flex gap-3 p-3 border rounded-xl cursor-pointer transition-all duration-300"
+                            :class="settings.blockColorMode.value === 'default' ? 'border-[#5B9BF5] bg-[#F0F6FF] shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'"
+                            @click="settings.blockColorMode.value = 'default'"
+                        >
+                            <div class="flex-1">
+                                <h3 class="font-bold text-slate-800 text-sm">Biru Laut (Default)</h3>
+                                <p class="text-[11px] text-slate-500 mt-0.5">Warna biru terang & selang-seling blok transparan.</p>
+                            </div>
+                        </div>
+
+                        <!-- 4 Colors -->
+                        <div 
+                            class="relative flex gap-3 p-3 border rounded-xl cursor-pointer transition-all duration-300"
+                            :class="settings.blockColorMode.value === 'four-colors' ? 'border-[#3DBE7A] bg-[#F5FDF8] shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'"
+                            @click="settings.blockColorMode.value = 'four-colors'"
+                        >
+                            <div class="flex-1">
+                                <h3 class="font-bold text-slate-800 text-sm">Empat Warna</h3>
+                                <p class="text-[11px] text-slate-500 mt-0.5">Kuning, Hijau, Biru, Oranye (Klasik Blok Mushaf).</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-100 pt-3">
                     <label class="block text-sm font-medium text-slate-700">Ukuran font</label>
                     <div class="mt-2 flex flex-wrap gap-2">
                         <button

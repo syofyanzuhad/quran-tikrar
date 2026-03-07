@@ -7,11 +7,13 @@ const STORAGE_KEYS = {
     SHOW_PAGE_NUMBER: 'tikrar-show-page-number',
     TIKRAR_MODE: 'tikrar-mode',
     DARK_MODE: 'tikrar-dark-mode',
+    BLOCK_COLOR_MODE: 'tikrar-block-color-mode',
 } as const;
 
 export type TargetRepsPreset = '7' | '10' | '20' | '40' | 'custom';
 export type ArabFontSize = 'small' | 'medium' | 'large' | 'xlarge';
 export type TikrarMode = 'single' | 'cumulative';
+export type BlockColorMode = 'default' | 'four-colors';
 
 const DEFAULT_TARGET_REPS = 20;
 const FONT_SIZE_MAP: Record<ArabFontSize, string> = {
@@ -64,6 +66,7 @@ export interface SettingsState {
     showTranslation: Ref<boolean>;
     showPageNumber: Ref<boolean>;
     tikrarMode: Ref<TikrarMode>;
+    blockColorMode: Ref<BlockColorMode>;
     arabFontSizeRem: Ref<string>;
     darkMode: Ref<boolean>;
 }
@@ -95,6 +98,9 @@ export function useSettings(): SettingsState {
     const showPageNumber = ref<boolean>(loadBool(STORAGE_KEYS.SHOW_PAGE_NUMBER, true));
     const tikrarMode = ref<TikrarMode>(
         loadString(STORAGE_KEYS.TIKRAR_MODE, ['single', 'cumulative'], 'single')
+    );
+    const blockColorMode = ref<BlockColorMode>(
+        loadString(STORAGE_KEYS.BLOCK_COLOR_MODE, ['default', 'four-colors'], 'default')
     );
     const darkMode = ref<boolean>(loadBool(STORAGE_KEYS.DARK_MODE, false));
 
@@ -145,6 +151,10 @@ export function useSettings(): SettingsState {
         localStorage.setItem(STORAGE_KEYS.TIKRAR_MODE, v);
     });
 
+    watch(blockColorMode, (v) => {
+        localStorage.setItem(STORAGE_KEYS.BLOCK_COLOR_MODE, v);
+    });
+
     watch(
         darkMode,
         (v) => {
@@ -164,6 +174,7 @@ export function useSettings(): SettingsState {
         showTranslation,
         showPageNumber,
         tikrarMode,
+        blockColorMode,
         arabFontSizeRem,
         darkMode,
     };

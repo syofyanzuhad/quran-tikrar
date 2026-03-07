@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { TikrarBlockUI } from '../../types/reader'
-import { BLOCK_COLORS } from '../../constants/blockColors'
+// Imports removed
 
 // Fallback interface for Ayah in case it's not defined elsewhere
 export interface Ayah {
@@ -68,7 +68,7 @@ const getRingStrokeDashoffset = (rep: number, target: number) => {
           :key="block.index"
           class="rounded-full transition-all duration-300 h-full"
           :class="[isActive(i) || isDone(i) ? 'flex-1' : 'w-4', !isActive(i) && !isDone(i) ? 'bg-slate-200' : '']"
-          :style="{ backgroundColor: (isActive(i) || isDone(i)) ? BLOCK_COLORS[block.index]?.border : undefined }"
+          :style="{ backgroundColor: (isActive(i) || isDone(i)) ? block.color?.border : undefined }"
         ></div>
       </div>
     </header>
@@ -84,9 +84,9 @@ const getRingStrokeDashoffset = (rep: number, target: number) => {
           !isActive(i) && isDone(i) ? 'opacity-65' : ''
         ]"
         :style="{
-          backgroundColor: BLOCK_COLORS[block.index]?.bg,
-          borderLeft: `3px solid ${BLOCK_COLORS[block.index]?.border}`,
-          boxShadow: isActive(i) ? `0 4px 20px ${BLOCK_COLORS[block.index]?.border}30` : undefined
+          backgroundColor: block.color?.bg,
+          borderLeft: `3px solid ${block.color?.border}`,
+          boxShadow: isActive(i) ? `0 4px 20px ${block.color?.border}30` : undefined
         }"
         @click="emit('block-tap', i)"
       >
@@ -94,8 +94,8 @@ const getRingStrokeDashoffset = (rep: number, target: number) => {
           <!-- Block Header -->
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: BLOCK_COLORS[block.index]?.border }"></span>
-              <span class="text-[10px] font-bold tracking-wider uppercase" :style="{ color: BLOCK_COLORS[block.index]?.accent }">
+              <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: block.color?.border }"></span>
+              <span class="text-[10px] font-bold tracking-wider uppercase" :style="{ color: block.color?.accent }">
                 {{ block.labelLatin }}
               </span>
             </div>
@@ -115,7 +115,7 @@ const getRingStrokeDashoffset = (rep: number, target: number) => {
               {{ ayahsMap[ayahId]?.arabic || ayahsMap[ayahId]?.text || 'Teks Arab tidak tersedia' }}
               <span 
                 class="inline-flex items-center justify-center w-6 h-6 rounded-full mx-1 text-xs font-sans font-bold translate-y-[-2px]"
-                :style="{ backgroundColor: BLOCK_COLORS[block.index]?.soft, color: BLOCK_COLORS[block.index]?.accent }"
+                :style="{ backgroundColor: block.color?.soft, color: block.color?.accent }"
               >
                 {{ ayahId }}
               </span>
@@ -147,7 +147,7 @@ const getRingStrokeDashoffset = (rep: number, target: number) => {
                     stroke-width="4" 
                     stroke-linecap="round"
                     class="transition-all duration-500 ease-out"
-                    :stroke="BLOCK_COLORS[block.index]?.border"
+                    :stroke="block.color?.border"
                     :stroke-dasharray="strokeDasharray"
                     :stroke-dashoffset="getRingStrokeDashoffset(reps[i] || 0, targetReps)"
                   />
@@ -179,8 +179,8 @@ const getRingStrokeDashoffset = (rep: number, target: number) => {
                 class="p-0 w-[42px] h-[42px] rounded-[11px] flex items-center justify-center transition-all active:scale-95"
                 :class="isDone(i) ? 'bg-slate-200 text-slate-400 shadow-none' : 'text-white'"
                 :style="!isDone(i) ? { 
-                  backgroundColor: BLOCK_COLORS[block.index]?.border,
-                  boxShadow: `0 3px 10px ${BLOCK_COLORS[block.index]?.border}44`
+                  backgroundColor: block.color?.border,
+                  boxShadow: `0 3px 10px ${block.color?.border}44`
                 } : {}"
                 :disabled="isDone(i)"
               >

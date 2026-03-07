@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, inject, computed, ref } from 'vue'
 import type { MushafPage } from '../../types/quran'
-import { BLOCK_COLORS } from '../../constants/blockColors'
+import { getBlockColor } from '../../constants/blockColors'
+import { SETTINGS_KEY, type SettingsState } from '../../composables/useSettings'
 import MushafLine from './MushafLine.vue'
 
 const props = defineProps<{
@@ -36,6 +37,15 @@ const getRingStrokeDashoffset = (rep: number, target: number) => {
 const isDone = (index: number) => (props.reps[index] || 0) >= props.targetReps
 
 const arabicBlockNumbers = ['١', '٢', '٣', '٤']
+
+const settings = inject<SettingsState | null>(SETTINGS_KEY)
+const blockMode = computed(() => settings?.blockColorMode.value || 'default')
+const isDark = computed(() => settings?.darkMode.value || false)
+
+const getBlockColorSafe = (index: number) => getBlockColor(index, blockMode.value, isDark.value)
+
+const isLegendExpanded = ref(false)
+const toggleLegend = () => { isLegendExpanded.value = !isLegendExpanded.value }
 
 </script>
 
@@ -89,10 +99,10 @@ const arabicBlockNumbers = ['١', '٢', '٣', '٤']
             }"
             :style="{
               backgroundColor: 
-                activeBlockIndex === block.blockIndex ? (BLOCK_COLORS[block.blockIndex]?.mushafBg || '#FFF8E7') : 
+                activeBlockIndex === block.blockIndex ? (getBlockColorSafe(block.blockIndex)?.mushafBg || '#FFF8E7') : 
                 (isDone(block.blockIndex) ? '#F8F5EE' : '#FEFCF5'),
-              borderLeft: `5px solid ${activeBlockIndex === block.blockIndex ? (BLOCK_COLORS[block.blockIndex]?.mushafBorder || '#F5C842') : (isDone(block.blockIndex) ? (BLOCK_COLORS[block.blockIndex]?.mushafBorder || '#F5C842') + '66' : '#E8DCC8')}`,
-              borderBottom: block.blockIndex < 3 ? `1px dashed ${(BLOCK_COLORS[block.blockIndex]?.mushafBorder || '#F5C842')}44` : 'none',
+              borderLeft: `5px solid ${activeBlockIndex === block.blockIndex ? (getBlockColorSafe(block.blockIndex)?.mushafBorder || '#F5C842') : (isDone(block.blockIndex) ? (getBlockColorSafe(block.blockIndex)?.mushafBorder || '#F5C842') + '66' : '#E8DCC8')}`,
+              borderBottom: block.blockIndex < 3 ? `1px dashed ${(getBlockColorSafe(block.blockIndex)?.mushafBorder || '#F5C842')}44` : 'none',
               paddingRight: '6px'
             }"
             @click="emit('block-tap', block.blockIndex)"
@@ -107,7 +117,7 @@ const arabicBlockNumbers = ['١', '٢', '٣', '٤']
             <div 
               class="absolute top-2 left-0 w-[20px] h-[18px] flex items-center justify-center rounded-r transition-colors shadow-sm z-10"
               :style="{
-                backgroundColor: activeBlockIndex === block.blockIndex || isDone(block.blockIndex) ? (BLOCK_COLORS[block.blockIndex]?.mushafBorder || '#F5C842') : '#E8DCC8',
+                backgroundColor: activeBlockIndex === block.blockIndex || isDone(block.blockIndex) ? (getBlockColorSafe(block.blockIndex)?.mushafBorder || '#F5C842') : '#E8DCC8',
                 color: activeBlockIndex === block.blockIndex || isDone(block.blockIndex) ? '#FFF' : '#9C8868',
                 fontSize: '12px'
               }"
@@ -121,10 +131,10 @@ const arabicBlockNumbers = ['١', '٢', '٣', '٤']
                 v-for="line in block.lines"
                 :key="line.lineNumber"
                 :line="line"
-                :blockColor="BLOCK_COLORS[block.blockIndex] || BLOCK_COLORS[0]!"
+                :blockColor="getBlockColorSafe(block.blockIndex) || getBlockColorSafe(0)!"
                 :isActiveBlock="activeBlockIndex === block.blockIndex"
                 :fontSizeScale="fontSizeScale"
-                v-memo="[activeBlockIndex === block.blockIndex, isDone(block.blockIndex), fontSizeScale]"
+                v-memo="[activeBlockIndex === block.blockIndex, isDone(block.blockIndex), fontSizeScale, blockMode, isDark]"
                 :style="{
                   opacity: activeBlockIndex !== block.blockIndex && isDone(block.blockIndex) ? 0.75 : 1
                 }"
@@ -138,8 +148,8 @@ const arabicBlockNumbers = ['١', '٢', '٣', '٤']
               :style="{
                 backgroundColor: 'rgba(255, 255, 255, 0.82)',
                 backdropFilter: 'blur(6px)',
-                border: `1px solid ${BLOCK_COLORS[block.blockIndex]?.mushafBorder}33`,
-                boxShadow: `0 2px 12px ${BLOCK_COLORS[block.blockIndex]?.mushafBorder}15`
+                border: `1px solid ${getBlockColorSafe(block.blockIndex)?.mushafBorder}33`,
+                boxShadow: `0 2px 12px ${getBlockColorSafe(block.blockIndex)?.mushafBorder}15`
               }"
               @click.stop
             >
@@ -153,12 +163,12 @@ const arabicBlockNumbers = ['١', '٢', '٣', '٤']
                       stroke-width="4" 
                       stroke-linecap="round"
                       class="transition-all duration-500 ease-out fill-transparent"
-                      :stroke="BLOCK_COLORS[block.blockIndex]?.mushafBorder || '#F5C842'"
+                      :stroke="getBlockColorSafe(block.blockIndex)?.mushafBorder || '#F5C842'"
                       :stroke-dasharray="strokeDasharray"
                       :stroke-dashoffset="getRingStrokeDashoffset(reps[block.blockIndex] || 0, targetReps)"
                     />
                   </svg>
-                  <div class="absolute inset-0 flex items-center justify-center font-bold text-sm" :style="{ color: BLOCK_COLORS[block.blockIndex]?.mushafInk || '#1A1209' }">
+                  <div class="absolute inset-0 flex items-center justify-center font-bold text-sm" :style="{ color: getBlockColorSafe(block.blockIndex)?.mushafInk || '#1A1209' }">
                     <template v-if="isDone(block.blockIndex)">
                       <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-green-600 stroke-current" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
                     </template>
@@ -172,7 +182,7 @@ const arabicBlockNumbers = ['١', '٢', '٣', '٤']
                   <span class="text-[11px] text-slate-500 font-medium">Blok {{ block.blockIndex + 1 }}</span>
                   <div class="flex items-center gap-1.5 mt-0.5 w-[70px]">
                     <div class="h-1 bg-slate-200 rounded-full flex-1 overflow-hidden">
-                      <div class="h-full rounded-full transition-all duration-300" :style="{ width: `${Math.min(100, ((reps[block.blockIndex] || 0) / targetReps) * 100)}%`, backgroundColor: BLOCK_COLORS[block.blockIndex]?.mushafBorder || '#F5C842' }"></div>
+                      <div class="h-full rounded-full transition-all duration-300" :style="{ width: `${Math.min(100, ((reps[block.blockIndex] || 0) / targetReps) * 100)}%`, backgroundColor: getBlockColorSafe(block.blockIndex)?.mushafBorder || '#F5C842' }"></div>
                     </div>
                   </div>
                   <span class="text-[9px] text-slate-400 mt-0.5">{{ reps[block.blockIndex] }}/{{ targetReps }} kali</span>
@@ -192,7 +202,7 @@ const arabicBlockNumbers = ['١', '٢', '٣', '٤']
                   @click.stop="emit('add-rep', block.blockIndex)"
                   class="shrink-0 p-0 w-[36px] h-[36px] rounded-[9px] flex items-center justify-center transition-all active:scale-95"
                   :class="isDone(block.blockIndex) ? 'text-[#9C8868]' : 'text-white'"
-                  :style="{ backgroundColor: isDone(block.blockIndex) ? '#E8DCC8' : (BLOCK_COLORS[block.blockIndex]?.mushafBorder || '#F5C842') }"
+                  :style="{ backgroundColor: isDone(block.blockIndex) ? '#E8DCC8' : (getBlockColorSafe(block.blockIndex)?.mushafBorder || '#F5C842') }"
                   :disabled="isDone(block.blockIndex)"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 stroke-current" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4.5v15m7.5-7.5h-15"></path></svg>
@@ -220,22 +230,45 @@ const arabicBlockNumbers = ['١', '٢', '٣', '٤']
       <div class="h-1.5 w-full bg-gradient-to-r from-[#8B7355] via-[#C4A882] to-[#8B7355]"></div>
     </div>
 
-    <!-- Page Wrapper Legend -->
-    <div v-if="page" class="mt-6 flex flex-wrap justify-center gap-2 max-w-[360px]">
-      <div
-        v-for="block in page.blocks"
-        :key="'legend-'+block.blockIndex"
-        class="text-[11px] font-bold px-2 py-1 rounded-md border flex items-center gap-1.5"
-        :style="{
-          backgroundColor: activeBlockIndex === block.blockIndex ? '#FFF' : 'transparent',
-          borderColor: activeBlockIndex === block.blockIndex ? (BLOCK_COLORS[block.blockIndex]?.border || '#C8BFA8') : '#C8BFA8',
-          color: activeBlockIndex === block.blockIndex ? (BLOCK_COLORS[block.blockIndex]?.accent || '#9C8868') : '#9C8868'
-        }"
-        @click="emit('block-tap', block.blockIndex)"
+    <!-- Floating Collapsible Legend -->
+    <div 
+      v-if="page" 
+      class="fixed left-0 top-1/3 -translate-y-1/2 z-40 transition-transform duration-300 flex items-start"
+      :class="isLegendExpanded ? 'translate-x-0' : '-translate-x-[calc(100%-24px)]'"
+    >
+      <div 
+        class="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md shadow-lg border border-slate-200 dark:border-slate-700 rounded-r-xl p-2.5 flex flex-col gap-2 transition-all duration-300 pointer-events-auto w-max"
       >
-        <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: BLOCK_COLORS[block.blockIndex]?.border || '#C8BFA8' }"></span>
-        Blok {{ block.blockIndex + 1 }}: {{ reps[block.blockIndex] }}/{{ targetReps }}
+        <!-- Expanded Content -->
+        <div class="flex flex-col gap-2 overflow-hidden transition-all duration-300" :class="isLegendExpanded ? 'opacity-100 max-w-[200px]' : 'opacity-0 max-w-0 pointer-events-none absolute'">
+          <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 px-1">Progress Blok</h4>
+          <div
+            v-for="block in page.blocks"
+            :key="'legend-'+block.blockIndex"
+            class="text-[11px] font-bold px-2 py-1.5 rounded-md border flex items-center gap-2 cursor-pointer transition-colors active:scale-95"
+            :style="{
+              backgroundColor: activeBlockIndex === block.blockIndex ? (isDark ? '#334155' : '#F1F5F9') : 'transparent',
+              borderColor: activeBlockIndex === block.blockIndex ? (getBlockColorSafe(block.blockIndex)?.border || '#C8BFA8') : (isDark ? '#475569' : '#E2E8F0'),
+              color: activeBlockIndex === block.blockIndex ? (getBlockColorSafe(block.blockIndex)?.accent || '#9C8868') : (isDark ? '#94A3B8' : '#64748B')
+            }"
+            @click="emit('block-tap', block.blockIndex)"
+          >
+            <span class="w-2.5 h-2.5 rounded-full shadow-sm" :style="{ backgroundColor: getBlockColorSafe(block.blockIndex)?.border || '#C8BFA8' }"></span>
+            <span class="whitespace-nowrap flex-1">Blok {{ block.blockIndex + 1 }}</span>
+            <span class="bg-slate-100 dark:bg-slate-700 px-1.5 rounded text-[9px]">{{ reps[block.blockIndex] }}/{{ targetReps }}</span>
+          </div>
+        </div>
       </div>
+      
+      <!-- Toggle Button (Always visible on the edge) -->
+      <button 
+        @click="toggleLegend"
+        class="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md shadow-lg border border-slate-200 dark:border-slate-700 border-l-0 rounded-r-xl p-1.5 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors pointer-events-auto h-12 w-6 ml-[-1px]"
+        :aria-label="isLegendExpanded ? 'Tutup Legend' : 'Buka Legend'"
+      >
+        <svg v-if="isLegendExpanded" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
+        <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+      </button>
     </div>
   </div>
 </template>
