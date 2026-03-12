@@ -516,7 +516,7 @@ function setUIMode(mode: ReaderUIMode) {
                 <p>Quran Tikrar — v{{ APP_VERSION }}</p>
                 <p>Data ayat dari <a href="https://quran.com" target="_blank" rel="noopener" class="text-[#1a7a4a] underline">Quran.com</a> API.</p>
                 <p>
-                    <a href="https://github.com/your-repo/quran-tikrar/issues" target="_blank" rel="noopener" class="text-[#1a7a4a] underline">Kirim masukan</a>
+                    <a href="https://github.com/syofyanzuhad/quran-tikrar/issues" target="_blank" rel="noopener" class="text-[#1a7a4a] underline">Kirim masukan</a>
                 </p>
             </div>
         </section>
