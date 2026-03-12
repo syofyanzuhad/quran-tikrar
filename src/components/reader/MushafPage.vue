@@ -100,8 +100,8 @@ const toggleLegend = () => { isLegendExpanded.value = !isLegendExpanded.value }
             :style="{
               backgroundColor: 
                 activeBlockIndex === block.blockIndex ? (getBlockColorSafe(block.blockIndex)?.mushafBg || '#FFF8E7') : 
-                (isDone(block.blockIndex) ? '#F8F5EE' : '#FEFCF5'),
-              borderLeft: `5px solid ${activeBlockIndex === block.blockIndex ? (getBlockColorSafe(block.blockIndex)?.mushafBorder || '#F5C842') : (isDone(block.blockIndex) ? (getBlockColorSafe(block.blockIndex)?.mushafBorder || '#F5C842') + '66' : '#E8DCC8')}`,
+                (isDone(block.blockIndex) ? '#F8F5EE' : (getBlockColorSafe(block.blockIndex)?.mushafBg || '#FEFCF5')),
+              borderLeft: `5px solid ${activeBlockIndex === block.blockIndex ? (getBlockColorSafe(block.blockIndex)?.mushafBorder || '#F5C842') : (isDone(block.blockIndex) ? (getBlockColorSafe(block.blockIndex)?.mushafBorder || '#F5C842') + '66' : (getBlockColorSafe(block.blockIndex)?.mushafBorder || '#E8DCC8'))}`,
               borderBottom: block.blockIndex < 3 ? `1px dashed ${(getBlockColorSafe(block.blockIndex)?.mushafBorder || '#F5C842')}44` : 'none',
               paddingRight: '6px'
             }"
@@ -117,8 +117,8 @@ const toggleLegend = () => { isLegendExpanded.value = !isLegendExpanded.value }
             <div 
               class="absolute top-2 left-0 w-[20px] h-[18px] flex items-center justify-center rounded-r transition-colors shadow-sm z-10"
               :style="{
-                backgroundColor: activeBlockIndex === block.blockIndex || isDone(block.blockIndex) ? (getBlockColorSafe(block.blockIndex)?.mushafBorder || '#F5C842') : '#E8DCC8',
-                color: activeBlockIndex === block.blockIndex || isDone(block.blockIndex) ? '#FFF' : '#9C8868',
+                backgroundColor: (getBlockColorSafe(block.blockIndex)?.mushafBorder || '#E8DCC8'),
+                color: '#FFF',
                 fontSize: '12px'
               }"
             >
