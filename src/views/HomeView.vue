@@ -113,13 +113,12 @@ watch(activeTab, (tab) => {
 
 <template>
     <div class="home-view">
-        <header class="mb-4">
-            <h1 class="text-xl font-extrabold tracking-tight text-emerald-900">Quran Tikrar</h1>
-            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Baca dan hafal per halaman</p>
+        <header class="home-header">
+            <h1 class="home-title">Quran Tikrar</h1>
+            <p class="home-subtitle">Baca dan hafal per halaman</p>
         </header>
 
-        <!-- Tabs -->
-        <div class="mb-4 flex gap-2 rounded-xl bg-slate-100 p-1">
+        <div class="home-tabs">
             <button
                 type="button"
                 class="tab"
@@ -147,15 +146,14 @@ watch(activeTab, (tab) => {
         </div>
 
         <template v-if="loading">
-            <!-- Skeleton for surah list -->
-            <section class="space-y-4">
+            <section class="home-skeleton">
                 <div class="skeleton-input" />
-                <ul class="space-y-2">
+                <ul class="surah-list">
                     <li v-for="i in 8" :key="i" class="surah-card skeleton-card">
-                        <div class="flex w-full items-center gap-3">
+                        <div class="surah-row">
                             <span class="skeleton-num" />
                             <div class="skeleton-content">
-                                <div class="flex items-center justify-between">
+                                <div class="surah-header">
                                     <div class="skeleton-line skeleton-title" />
                                     <div class="skeleton-line skeleton-arabic" />
                                 </div>
@@ -169,38 +167,37 @@ watch(activeTab, (tab) => {
         </template>
 
         <template v-else>
-            <!-- Tab 1: Per Surah -->
-            <section v-show="activeTab === 'surah'" class="space-y-4">
-                <div class="relative">
+            <section v-show="activeTab === 'surah'" class="surah-section">
+                <div class="search-wrap">
                     <input
                         v-model="searchQuery"
                         type="search"
                         placeholder="Cari surah (Arab atau Latin)..."
-                        class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-4 pr-10 text-sm"
+                        class="search-input"
                     />
                 </div>
-                <ul class="space-y-2">
+                <ul class="surah-list">
                     <li v-for="surah in filteredSurahs" :key="surah.id">
                         <button
                             type="button"
                             class="surah-card"
                             @click="openSurah(surah.id)"
                         >
-                            <div class="flex w-full items-center gap-3">
+                            <div class="surah-row">
                                 <span class="num">{{ surah.id }}</span>
-                                <div class="min-w-0 flex-1 text-left">
-                                    <div class="flex items-center justify-between">
-                                        <p class="font-semibold">{{ surah.nameSimple }}</p>
-                                        <p class="arabic text-[1.15rem] font-medium text-emerald-700 dark:text-emerald-400" dir="rtl">
+                                <div class="surah-info">
+                                    <div class="surah-header">
+                                        <p class="surah-name">{{ surah.nameSimple }}</p>
+                                        <p class="arabic surah-arabic" dir="rtl">
                                             {{ surah.nameArabic }}
                                         </p>
                                     </div>
-                                    <p class="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                    <p class="surah-meta">
                                         {{ surah.revelationPlace === 'makkah' ? 'Makkiyah' : 'Madaniyah' }} • {{ surah.versesCount }} ayat
                                     </p>
-                                    <div class="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-slate-200/70">
+                                    <div class="surah-progress">
                                         <div
-                                            class="h-full rounded-full bg-emerald-500 transition-[width] duration-300"
+                                            class="surah-progress__fill"
                                             :style="{ width: `${getSurahProgress(surah.id)}%` }"
                                         />
                                     </div>
@@ -211,8 +208,7 @@ watch(activeTab, (tab) => {
                 </ul>
             </section>
 
-            <!-- Tab 2: Per Juz -->
-            <section v-show="activeTab === 'juz'" class="grid grid-cols-2 gap-3">
+            <section v-show="activeTab === 'juz'" class="juz-grid">
                 <button
                     v-for="item in juzProgressList"
                     :key="item.juzNumber"
@@ -221,16 +217,15 @@ watch(activeTab, (tab) => {
                     :class="{ completed: item.status === 'completed' }"
                     @click="openPage(item.firstPage)"
                 >
-                    <p class="font-bold">Juz {{ item.juzNumber }}</p>
-                    <p class="mt-1 text-xs text-slate-600 dark:text-slate-300">{{ item.surahRange }}</p>
-                    <p class="mt-2 text-sm font-semibold text-[#1a7a4a]">{{ item.percentage.toFixed(0) }}%</p>
+                    <p class="juz-title">Juz {{ item.juzNumber }}</p>
+                    <p class="juz-range">{{ item.surahRange }}</p>
+                    <p class="juz-percent">{{ item.percentage.toFixed(0) }}%</p>
                 </button>
             </section>
 
-            <!-- Tab 3: Lanjutkan -->
-            <section v-show="activeTab === 'continue'" class="flex flex-col items-center py-8">
+            <section v-show="activeTab === 'continue'" class="continue-section">
                 <template v-if="lastPage != null">
-                    <p class="text-sm text-slate-600 dark:text-slate-300">Halaman terakhir yang dibuka</p>
+                    <p class="continue-label">Halaman terakhir yang dibuka</p>
                     <button
                         type="button"
                         class="continue-btn"
@@ -240,8 +235,8 @@ watch(activeTab, (tab) => {
                     </button>
                 </template>
                 <template v-else>
-                    <p class="text-center text-sm text-slate-600 dark:text-slate-300">Belum ada halaman terakhir.</p>
-                    <p class="mt-2 text-center text-xs text-slate-500 dark:text-slate-400">
+                    <p class="continue-empty">Belum ada halaman terakhir.</p>
+                    <p class="continue-hint">
                         Pilih surah atau juz di tab lain, lalu buka halaman untuk mulai menghafal.
                     </p>
                 </template>
@@ -255,6 +250,34 @@ watch(activeTab, (tab) => {
     padding: 1rem;
     padding-bottom: 5rem;
 }
+
+.home-header {
+    margin-bottom: 1rem;
+}
+
+.home-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #0f172a;
+    margin: 0;
+}
+
+.home-subtitle {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: var(--text-muted, #64748b);
+}
+
+.home-tabs {
+    display: flex;
+    gap: 0.5rem;
+    background: #f1f5f9;
+    border-radius: 0.9rem;
+    padding: 0.25rem;
+    margin-bottom: 1rem;
+}
+
 .tab {
     flex: 1;
     border-radius: 0.75rem;
@@ -267,11 +290,47 @@ watch(activeTab, (tab) => {
     cursor: pointer;
     transition: color 0.2s, background 0.2s;
 }
+
 .tab.active {
     background: white;
     color: #0f172a;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
+
+.home-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.search-wrap {
+    position: relative;
+}
+
+.search-input {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    padding: 0.65rem 2.5rem 0.65rem 1rem;
+    font-size: 0.875rem;
+}
+
+.surah-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.surah-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
 .surah-card {
     width: 100%;
     padding: 0.625rem 0.875rem;
@@ -283,11 +342,70 @@ watch(activeTab, (tab) => {
     text-align: left;
     transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
 }
+
 .surah-card:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     border-color: #cbd5e1;
 }
+
+.surah-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.surah-info {
+    min-width: 0;
+    flex: 1;
+    text-align: left;
+}
+
+.surah-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.surah-name {
+    font-weight: 600;
+    margin: 0;
+    color: #0f172a;
+}
+
+.surah-arabic {
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: #047857;
+    margin: 0;
+}
+
+.surah-meta {
+    margin-top: 0.25rem;
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+}
+
+.surah-progress {
+    margin-top: 0.35rem;
+    height: 4px;
+    width: 100%;
+    border-radius: 999px;
+    background: rgba(226, 232, 240, 0.7);
+    overflow: hidden;
+}
+
+.surah-progress__fill {
+    height: 100%;
+    border-radius: 999px;
+    background: #10b981;
+    transition: width 0.3s ease;
+}
+
 .num {
     flex-shrink: 0;
     width: 2rem;
@@ -302,9 +420,17 @@ watch(activeTab, (tab) => {
     font-size: 0.8125rem;
     box-shadow: 0 2px 4px rgba(16, 185, 129, 0.25);
 }
+
 .arabic {
     font-family: 'Amiri', 'Uthmanic Hafs', 'Scheherazade New', serif;
 }
+
+.juz-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
 .juz-card {
     padding: 1rem;
     border-radius: 0.75rem;
@@ -315,15 +441,60 @@ watch(activeTab, (tab) => {
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
 }
+
 .juz-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     border-color: #cbd5e1;
 }
+
 .juz-card.completed {
     background: #dcfce7;
     border-color: #86efac;
 }
+
+.juz-title {
+    font-weight: 700;
+    margin: 0;
+}
+
+.juz-range {
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.juz-percent {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1a7a4a;
+}
+
+.continue-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 0;
+    text-align: center;
+}
+
+.continue-label {
+    font-size: 0.875rem;
+    color: #64748b;
+}
+
+.continue-empty {
+    font-size: 0.875rem;
+    color: #64748b;
+}
+
+.continue-hint {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
 .continue-btn {
     margin-top: 1rem;
     padding: 1rem 1.5rem;
@@ -336,9 +507,11 @@ watch(activeTab, (tab) => {
     cursor: pointer;
     transition: transform 0.15s, box-shadow 0.15s;
 }
+
 .continue-btn:hover {
     box-shadow: 0 4px 12px rgba(26, 122, 74, 0.35);
 }
+
 .continue-btn:active {
     transform: scale(0.98);
 }
@@ -351,9 +524,11 @@ watch(activeTab, (tab) => {
     background-size: 200% 100%;
     animation: skeleton-shimmer 1.2s ease-in-out infinite;
 }
+
 .skeleton-card {
     pointer-events: none;
 }
+
 .skeleton-card .skeleton-num,
 .skeleton-line,
 .skeleton-progress {
@@ -362,34 +537,41 @@ watch(activeTab, (tab) => {
     animation: skeleton-shimmer 1.2s ease-in-out infinite;
     border-radius: 0.25rem;
 }
+
 .skeleton-num {
     display: block;
     width: 2rem;
     height: 2rem;
     flex-shrink: 0;
 }
+
 .skeleton-content {
     min-width: 0;
     flex: 1;
 }
+
 .skeleton-title {
     width: 6rem;
     height: 1rem;
 }
+
 .skeleton-arabic {
     width: 4rem;
     height: 1.25rem;
 }
+
 .skeleton-meta {
     width: 8rem;
     height: 0.625rem;
     margin-top: 0.375rem;
 }
+
 .skeleton-progress {
     height: 0.25rem;
     width: 100%;
     margin-top: 0.5rem;
 }
+
 @media (prefers-reduced-motion: reduce) {
     .skeleton-input,
     .skeleton-card .skeleton-num,
@@ -399,6 +581,7 @@ watch(activeTab, (tab) => {
         background: #e2e8f0;
     }
 }
+
 @keyframes skeleton-shimmer {
     0% { background-position: 200% 0; }
     100% { background-position: -200% 0; }

@@ -94,7 +94,7 @@ function handleReset(): void {
 <template>
     <div class="tikrar-counter">
         <div class="counter-ring-wrap">
-            <svg class="counter-ring -rotate-90" viewBox="0 0 100 100" aria-hidden="true">
+            <svg class="counter-ring counter-ring--rotate" viewBox="0 0 100 100" aria-hidden="true">
                 <circle
                     cx="50"
                     cy="50"
@@ -139,7 +139,7 @@ function handleReset(): void {
                 aria-label="Reset tikrar count"
                 @click.stop="handleReset"
             >
-                <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4" aria-hidden="true">
+                <svg viewBox="0 0 20 20" fill="currentColor" class="counter-reset-icon" aria-hidden="true">
                     <path
                         fill-rule="evenodd"
                         d="M10 3a7 7 0 1 0 6.32 4H14a1 1 0 1 1 0-2h4a1 1 0 0 1 1 1v4a1 1 0 1 1-2 0V8.42A9 9 0 1 1 10 1a1 1 0 1 1 0 2Z"
@@ -180,6 +180,10 @@ function handleReset(): void {
 .counter-ring {
     height: 100%;
     width: 100%;
+}
+
+.counter-ring--rotate {
+    transform: rotate(-90deg);
 }
 
 .ring-bg {
@@ -291,6 +295,11 @@ function handleReset(): void {
     border: 1px solid var(--counter-reset-border, #e2e8f0);
     cursor: pointer;
     transition: transform 0.15s, background 0.15s;
+}
+
+.counter-reset-icon {
+    width: 1rem;
+    height: 1rem;
 }
 
 .counter-reset-btn:hover {

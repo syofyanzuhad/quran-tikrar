@@ -169,20 +169,13 @@ async function confirmClearCache(): Promise<void> {
     }
 }
 
-// Load combined with onMounted hook logic at the end instead.
-
 const APP_VERSION = '1.0.0';
 
-// -- Reader UI Mode Selection --
-// We map directly to localStorage here so ReaderView picks it up instantly
 type ReaderUIMode = 'app' | 'mushaf';
 const uiMode = ref<ReaderUIMode>('app');
 
 onMounted(() => {
-    // Other storage info load
     void updateStorageInfo();
-    
-    // Load UI mode setting
     const saved = localStorage.getItem('tikrar-reader-ui-mode') as ReaderUIMode | null;
     if (saved === 'app' || saved === 'mushaf') {
         uiMode.value = saved;
@@ -197,15 +190,14 @@ function setUIMode(mode: ReaderUIMode) {
 
 <template>
     <div class="settings-view">
-        <header class="mb-4">
-            <h1 class="text-xl font-extrabold tracking-tight text-slate-900">Pengaturan</h1>
-            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Preferensi aplikasi</p>
+        <header class="settings-header">
+            <h1 class="settings-title">Pengaturan</h1>
+            <p class="settings-subtitle">Preferensi aplikasi</p>
         </header>
 
-        <!-- Section 1: Target Pengulangan -->
         <section class="section">
             <h2 class="section-title">Target Pengulangan</h2>
-            <div class="flex flex-wrap gap-2">
+            <div class="preset-row">
                 <button
                     v-for="opt in TARGET_PRESETS"
                     :key="opt.preset"
@@ -217,124 +209,110 @@ function setUIMode(mode: ReaderUIMode) {
                     {{ opt.label }}
                 </button>
             </div>
-            <div v-if="settings.targetRepsPreset.value === 'custom'" class="mt-3">
-                <label class="block text-sm font-medium text-slate-700">Jumlah custom</label>
+            <div v-if="settings.targetRepsPreset.value === 'custom'" class="custom-input">
+                <label class="input-label">Jumlah custom</label>
                 <input
                     v-model.number="settings.customTargetReps"
                     type="number"
                     min="1"
                     max="999"
-                    class="mt-1 w-full max-w-[8rem] rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    class="input-field"
                 />
             </div>
-            <p class="mt-3 text-sm text-slate-600 dark:text-slate-300">{{ previewTargetText }}</p>
+            <p class="helper-text">{{ previewTargetText }}</p>
         </section>
 
-        <!-- Section 1.5: Tampilan Halaman Quran -->
         <section class="section">
             <h2 class="section-title">📄 Tampilan Halaman Quran</h2>
-            <p class="text-sm text-slate-500 mb-4">Pilih gaya tampilan saat membaca</p>
-            
-            <div class="space-y-3">
-                
-                <!-- App Mode Option -->
-                <div 
-                    class="relative flex gap-4 p-4 border rounded-xl cursor-pointer transition-all duration-300"
-                    :class="uiMode === 'app' ? 'border-[#059669] bg-[#F1FDF5] shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'"
+            <p class="section-desc">Pilih gaya tampilan saat membaca</p>
+
+            <div class="ui-mode-list">
+                <div
+                    class="ui-mode-card"
+                    :class="uiMode === 'app' ? 'ui-mode-card--active' : ''"
                     @click="setUIMode('app')"
                 >
-                    <!-- Mini CSS Preview Mockup -->
-                    <div class="shrink-0 w-16 h-20 bg-[#f8fafc] rounded-md border border-slate-200 p-1 flex flex-col gap-1 shadow-inner">
-                        <div class="w-full h-3 rounded-sm bg-[#FFF8E7] shadow-sm" style="border-left: 2px solid #F5C842"></div>
-                        <div class="w-full h-3 rounded-sm bg-[#EDFAF3] shadow-sm" style="border-left: 2px solid #3DBE7A"></div>
-                        <div class="w-full h-3 rounded-sm bg-[#EAF3FF] shadow-sm" style="border-left: 2px solid #5B9BF5"></div>
-                        <div class="w-full h-3 rounded-sm bg-[#FFF1EA] shadow-sm" style="border-left: 2px solid #F5824A"></div>
+                    <div class="ui-mode-preview ui-mode-preview--app">
+                        <div class="ui-mode-preview__block block-yellow"></div>
+                        <div class="ui-mode-preview__block block-green"></div>
+                        <div class="ui-mode-preview__block block-blue"></div>
+                        <div class="ui-mode-preview__block block-orange"></div>
                     </div>
-                    
-                    <div class="flex-1">
-                        <h3 class="font-bold text-slate-800 flex items-center gap-2">
+
+                    <div class="ui-mode-content">
+                        <h3 class="ui-mode-title">
                             Tampilan App
-                            <span v-if="uiMode === 'app'" class="bg-[#059669] text-white text-[10px] rounded-full px-2 py-0.5 tracking-wide">AKTIF ✓</span>
+                            <span v-if="uiMode === 'app'" class="ui-mode-badge ui-mode-badge--app">AKTIF ✓</span>
                         </h3>
-                        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
-                            Modern, dengan counter tikrar terintegrasi di dalam blok.
-                        </p>
+                        <p class="ui-mode-desc">Modern, dengan counter tikrar terintegrasi di dalam blok.</p>
                     </div>
                 </div>
 
-                <!-- Mushaf Mode Option -->
-                <div 
-                    class="relative flex gap-4 p-4 border rounded-xl cursor-pointer transition-all duration-300"
-                    :class="uiMode === 'mushaf' ? 'border-[#C4A882] bg-[#FFFDF8] shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'"
+                <div
+                    class="ui-mode-card"
+                    :class="uiMode === 'mushaf' ? 'ui-mode-card--mushaf' : ''"
                     @click="setUIMode('mushaf')"
                 >
-                    <!-- Mini CSS Preview Mockup -->
-                    <div class="shrink-0 w-16 h-20 bg-[#E8E0D0] rounded p-1 flex items-center justify-center">
-                        <div class="w-full h-[90%] bg-[#FEFCF5] rounded-[1px] shadow-sm flex flex-col gap-0 border border-black/5 relative relative overflow-hidden">
-                           <div class="h-0.5 w-full bg-[#8B7355]"></div>
-                           <div class="flex-1 w-full pl-0.5 pt-0.5 flex flex-col gap-[1px]">
-                               <div class="w-full h-2.5 bg-[#FEFCF5]" style="border-left: 2px solid #F5C842"></div>
-                               <div class="w-full h-[1px] bg-[#E8DCC8]"></div>
-                               <div class="w-full h-2.5 bg-[#FEFCF5]" style="border-left: 2px solid #3DBE7A"></div>
-                               <div class="w-full h-[1px] bg-[#E8DCC8]"></div>
-                               <div class="w-full h-2.5 bg-[#FEFCF5]" style="border-left: 2px solid #5B9BF5"></div>
-                               <div class="w-full h-[1px] bg-[#E8DCC8]"></div>
-                               <div class="w-full h-2.5 bg-[#FEFCF5]" style="border-left: 2px solid #F5824A"></div>
-                           </div>
-                           <div class="h-0.5 w-full bg-[#8B7355]"></div>
+                    <div class="ui-mode-preview ui-mode-preview--mushaf">
+                        <div class="mushaf-mini">
+                            <div class="mushaf-mini__ornament"></div>
+                            <div class="mushaf-mini__lines">
+                                <div class="mushaf-mini__line line-yellow"></div>
+                                <div class="mushaf-mini__divider"></div>
+                                <div class="mushaf-mini__line line-green"></div>
+                                <div class="mushaf-mini__divider"></div>
+                                <div class="mushaf-mini__line line-blue"></div>
+                                <div class="mushaf-mini__divider"></div>
+                                <div class="mushaf-mini__line line-orange"></div>
+                            </div>
+                            <div class="mushaf-mini__ornament"></div>
                         </div>
                     </div>
-                    
-                    <div class="flex-1">
-                        <h3 class="font-bold text-slate-800 flex items-center gap-2">
+
+                    <div class="ui-mode-content">
+                        <h3 class="ui-mode-title">
                             Tampilan Mushaf
-                            <span v-if="uiMode === 'mushaf'" class="bg-[#C4A882] text-[#3B2A1A] text-[10px] rounded-full px-2 py-0.5 tracking-wide font-bold">AKTIF ✓</span>
+                            <span v-if="uiMode === 'mushaf'" class="ui-mode-badge ui-mode-badge--mushaf">AKTIF ✓</span>
                         </h3>
-                        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
-                            Seperti memegang halaman Mushaf Tikrar fisik klasik.
-                        </p>
+                        <p class="ui-mode-desc">Seperti memegang halaman Mushaf Tikrar fisik klasik.</p>
                     </div>
                 </div>
-
             </div>
         </section>
 
-        <!-- Section 2: Tampilan Teks Arab & Warna Blok -->
         <section class="section">
             <h2 class="section-title">Warna & Tampilan Teks</h2>
-            <div class="space-y-4">
+            <div class="option-group">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700">Skema Warna Blok Tikrar</label>
-                    <div class="mt-2 flex flex-col gap-2 relative">
-                        <!-- Default Blue -->
-                        <div 
-                            class="relative flex gap-3 p-3 border rounded-xl cursor-pointer transition-all duration-300"
-                            :class="settings.blockColorMode.value === 'default' ? 'border-[#5B9BF5] bg-[#F0F6FF] shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'"
+                    <label class="input-label">Skema Warna Blok Tikrar</label>
+                    <div class="option-list">
+                        <div
+                            class="option-card"
+                            :class="settings.blockColorMode.value === 'default' ? 'option-card--blue' : ''"
                             @click="settings.blockColorMode.value = 'default'"
                         >
-                            <div class="flex-1">
-                                <h3 class="font-bold text-slate-800 text-sm">Biru Laut (Default)</h3>
-                                <p class="text-[11px] text-slate-500 mt-0.5">Warna biru terang & selang-seling blok transparan.</p>
+                            <div class="option-card__content">
+                                <h3 class="option-card__title">Biru Laut (Default)</h3>
+                                <p class="option-card__desc">Warna biru terang & selang-seling blok transparan.</p>
                             </div>
                         </div>
 
-                        <!-- 4 Colors -->
-                        <div 
-                            class="relative flex gap-3 p-3 border rounded-xl cursor-pointer transition-all duration-300"
-                            :class="settings.blockColorMode.value === 'four-colors' ? 'border-[#3DBE7A] bg-[#F5FDF8] shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'"
+                        <div
+                            class="option-card"
+                            :class="settings.blockColorMode.value === 'four-colors' ? 'option-card--green' : ''"
                             @click="settings.blockColorMode.value = 'four-colors'"
                         >
-                            <div class="flex-1">
-                                <h3 class="font-bold text-slate-800 text-sm">Empat Warna</h3>
-                                <p class="text-[11px] text-slate-500 mt-0.5">Kuning, Hijau, Biru, Oranye (Klasik Blok Mushaf).</p>
+                            <div class="option-card__content">
+                                <h3 class="option-card__title">Empat Warna</h3>
+                                <p class="option-card__desc">Kuning, Hijau, Biru, Oranye (Klasik Blok Mushaf).</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="border-t border-slate-100 pt-3">
-                    <label class="block text-sm font-medium text-slate-700">Ukuran font</label>
-                    <div class="mt-2 flex flex-wrap gap-2">
+                <div class="option-divider">
+                    <label class="input-label">Ukuran font</label>
+                    <div class="preset-row">
                         <button
                             v-for="opt in FONT_OPTIONS"
                             :key="opt.value"
@@ -347,8 +325,9 @@ function setUIMode(mode: ReaderUIMode) {
                         </button>
                     </div>
                 </div>
-                <div class="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3">
-                    <span class="text-sm font-medium text-slate-700">Tampilkan terjemahan Indonesia</span>
+
+                <div class="toggle-row">
+                    <span class="toggle-label">Tampilkan terjemahan Indonesia</span>
                     <button
                         type="button"
                         class="toggle"
@@ -360,8 +339,8 @@ function setUIMode(mode: ReaderUIMode) {
                         <span class="toggle-dot" />
                     </button>
                 </div>
-                <div class="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3">
-                    <span class="text-sm font-medium text-slate-700">Tampilkan nomor halaman mushaf</span>
+                <div class="toggle-row">
+                    <span class="toggle-label">Tampilkan nomor halaman mushaf</span>
                     <button
                         type="button"
                         class="toggle"
@@ -373,8 +352,8 @@ function setUIMode(mode: ReaderUIMode) {
                         <span class="toggle-dot" />
                     </button>
                 </div>
-                <div class="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3">
-                    <span class="text-sm font-medium text-slate-700">Mode gelap</span>
+                <div class="toggle-row">
+                    <span class="toggle-label">Mode gelap</span>
                     <button
                         type="button"
                         class="toggle"
@@ -390,34 +369,33 @@ function setUIMode(mode: ReaderUIMode) {
             </div>
         </section>
 
-        <!-- Section 3: Mode Tikrar -->
         <section class="section">
             <h2 class="section-title">Mode Tikrar</h2>
-            <div class="space-y-3">
-                <label class="flex cursor-pointer gap-3 rounded-lg border border-slate-200 bg-white p-4">
+            <div class="radio-list">
+                <label class="radio-card">
                     <input
                         v-model="settings.tikrarMode"
                         type="radio"
                         value="single"
-                        class="mt-0.5"
+                        class="radio-input"
                     />
                     <div>
-                        <span class="font-medium text-slate-900">Per Blok</span>
-                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        <span class="radio-title">Per Blok</span>
+                        <p class="radio-desc">
                             Hafal blok 1, selesai lalu lanjut blok 2, dan seterusnya. Satu blok selesai sebelum pindah.
                         </p>
                     </div>
                 </label>
-                <label class="flex cursor-pointer gap-3 rounded-lg border border-slate-200 bg-white p-4">
+                <label class="radio-card">
                     <input
                         v-model="settings.tikrarMode"
                         type="radio"
                         value="cumulative"
-                        class="mt-0.5"
+                        class="radio-input"
                     />
                     <div>
-                        <span class="font-medium text-slate-900">Kumulatif</span>
-                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        <span class="radio-title">Kumulatif</span>
+                        <p class="radio-desc">
                             Blok 1, lalu blok 1+2, lalu 1+2+3, lalu 1+2+3+4. Setelah empat blok selesai, ada sesi gabungan seluruh halaman.
                         </p>
                     </div>
@@ -425,11 +403,10 @@ function setUIMode(mode: ReaderUIMode) {
             </div>
         </section>
 
-        <!-- Section 4: Data & Cache -->
         <section class="section">
             <h2 class="section-title">Data & Cache</h2>
-            <div class="space-y-3">
-                <p class="text-sm text-slate-600 dark:text-slate-300">
+            <div class="option-group">
+                <p class="info-text">
                     Data Quran:
                     <template v-if="storageStatus === 'loading'"> Memuat… </template>
                     <template v-else-if="storageStatus === 'ready'">
@@ -438,17 +415,17 @@ function setUIMode(mode: ReaderUIMode) {
                     </template>
                     <template v-else> Belum diunduh </template>
                 </p>
-                <p v-if="downloadedCount != null" class="text-sm text-slate-600 dark:text-slate-300">
+                <p v-if="downloadedCount != null" class="info-text">
                     Halaman terunduh: <strong>{{ downloadedCount }} dari {{ TOTAL_MUSHAF_PAGES }}</strong>
                     <template v-if="downloadedCount < TOTAL_MUSHAF_PAGES">
                         — pilih opsi unduh di bawah.
                     </template>
                 </p>
-                <div v-if="downloadedCount != null && downloadedCount < TOTAL_MUSHAF_PAGES" class="download-options space-y-4">
+                <div v-if="downloadedCount != null && downloadedCount < TOTAL_MUSHAF_PAGES" class="download-options">
                     <div class="download-option">
-                        <h3 class="text-sm font-semibold text-slate-700 mb-2">Opsi 1: Unduh per Juz</h3>
-                        <p class="text-xs text-slate-500 mb-2">Pilih satu juz untuk diunduh (sekitar 20 halaman per juz).</p>
-                        <div class="flex flex-wrap items-center gap-2">
+                        <h3 class="option-title">Opsi 1: Unduh per Juz</h3>
+                        <p class="option-desc">Pilih satu juz untuk diunduh (sekitar 20 halaman per juz).</p>
+                        <div class="option-row">
                             <select
                                 v-model.number="selectedJuz"
                                 class="juz-select"
@@ -469,8 +446,8 @@ function setUIMode(mode: ReaderUIMode) {
                         </div>
                     </div>
                     <div class="download-option">
-                        <h3 class="text-sm font-semibold text-slate-700 mb-2">Opsi 2: Unduh seluruh Quran</h3>
-                        <p class="text-xs text-slate-500 mb-2">Unduh semua halaman yang belum ada (sisa data).</p>
+                        <h3 class="option-title">Opsi 2: Unduh seluruh Quran</h3>
+                        <p class="option-desc">Unduh semua halaman yang belum ada (sisa data).</p>
                         <button
                             type="button"
                             class="action-btn"
@@ -481,7 +458,7 @@ function setUIMode(mode: ReaderUIMode) {
                         </button>
                     </div>
                 </div>
-                <div class="flex flex-wrap gap-2">
+                <div class="button-row">
                     <button
                         type="button"
                         class="action-btn danger"
@@ -509,38 +486,36 @@ function setUIMode(mode: ReaderUIMode) {
             </div>
         </section>
 
-        <!-- Section 5: Tentang -->
         <section class="section">
             <h2 class="section-title">Tentang</h2>
-            <div class="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+            <div class="info-list">
                 <p>Quran Tikrar — v{{ APP_VERSION }}</p>
-                <p>Data ayat dari <a href="https://quran.com" target="_blank" rel="noopener" class="text-[#1a7a4a] underline">Quran.com</a> API.</p>
+                <p>Data ayat dari <a href="https://quran.com" target="_blank" rel="noopener" class="link">Quran.com</a> API.</p>
                 <p>
-                    <a href="https://github.com/your-repo/quran-tikrar/issues" target="_blank" rel="noopener" class="text-[#1a7a4a] underline">Kirim masukan</a>
+                    <a href="https://github.com/your-repo/quran-tikrar/issues" target="_blank" rel="noopener" class="link">Kirim masukan</a>
                 </p>
             </div>
         </section>
 
-        <!-- Reset confirm modal -->
         <div v-if="showResetConfirm" class="modal-overlay" @click.self="closeResetConfirm">
             <div class="modal">
-                <h3 class="text-lg font-semibold text-slate-900">Reset Semua Progress</h3>
-                <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                <h3 class="modal-title">Reset Semua Progress</h3>
+                <p class="modal-text">
                     Semua progress hafalan akan dihapus. Ketik <strong>RESET</strong> untuk konfirmasi.
                 </p>
                 <input
                     v-model="resetConfirmText"
                     type="text"
-                    class="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    class="input-field input-field--full"
                     placeholder="Ketik RESET"
                 />
-                <div class="mt-4 flex gap-2">
-                    <button type="button" class="action-btn flex-1" @click="closeResetConfirm">
+                <div class="modal-actions">
+                    <button type="button" class="action-btn flex" @click="closeResetConfirm">
                         Batal
                     </button>
                     <button
                         type="button"
-                        class="action-btn danger flex-1"
+                        class="action-btn danger flex"
                         :disabled="!canReset || isResetting"
                         @click="confirmReset"
                     >
@@ -550,20 +525,19 @@ function setUIMode(mode: ReaderUIMode) {
             </div>
         </div>
 
-        <!-- Clear cache confirm modal -->
         <div v-if="showClearCacheConfirm" class="modal-overlay" @click.self="closeClearCacheConfirm">
             <div class="modal">
-                <h3 class="text-lg font-semibold text-slate-900">Hapus Cache & Unduh Ulang</h3>
-                <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                <h3 class="modal-title">Hapus Cache & Unduh Ulang</h3>
+                <p class="modal-text">
                     Semua data Quran akan dihapus dan diunduh ulang. Pastikan koneksi internet tersedia.
                 </p>
-                <div class="mt-4 flex gap-2">
-                    <button type="button" class="action-btn flex-1" @click="closeClearCacheConfirm">
+                <div class="modal-actions">
+                    <button type="button" class="action-btn flex" @click="closeClearCacheConfirm">
                         Batal
                     </button>
                     <button
                         type="button"
-                        class="action-btn danger flex-1"
+                        class="action-btn danger flex"
                         :disabled="isClearing"
                         @click="confirmClearCache"
                     >
@@ -580,6 +554,25 @@ function setUIMode(mode: ReaderUIMode) {
     padding: 1rem;
     padding-bottom: 5rem;
 }
+
+.settings-header {
+    margin-bottom: 1rem;
+}
+
+.settings-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #0f172a;
+    margin: 0;
+}
+
+.settings-subtitle {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: #64748b;
+}
+
 .section {
     margin-bottom: 1.5rem;
     border: 1px solid #e2e8f0;
@@ -587,6 +580,7 @@ function setUIMode(mode: ReaderUIMode) {
     padding: 1rem 1.25rem;
     border-radius: 1rem;
 }
+
 .section-title {
     font-size: 0.875rem;
     font-weight: 600;
@@ -595,6 +589,19 @@ function setUIMode(mode: ReaderUIMode) {
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
+
+.section-desc {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin: 0 0 1rem;
+}
+
+.preset-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
 .preset-btn {
     padding: 0.375rem 0.75rem;
     border-radius: 0.5rem;
@@ -606,14 +613,253 @@ function setUIMode(mode: ReaderUIMode) {
     cursor: pointer;
     transition: background 0.2s, border-color 0.2s, color 0.2s;
 }
+
 .preset-btn:hover {
     background: #f8fafc;
 }
+
 .preset-btn.active {
     background: #1a7a4a;
     border-color: #1a7a4a;
     color: #fff;
 }
+
+.custom-input {
+    margin-top: 0.75rem;
+}
+
+.input-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 0.35rem;
+}
+
+.input-field {
+    width: 8rem;
+    max-width: 100%;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.6rem;
+    border: 1px solid #e2e8f0;
+    font-size: 0.875rem;
+}
+
+.input-field--full {
+    width: 100%;
+}
+
+.helper-text {
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.ui-mode-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.ui-mode-card {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 0.9rem;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.ui-mode-card--active {
+    border-color: #059669;
+    background: #f1fdf5;
+    box-shadow: 0 6px 12px rgba(5, 150, 105, 0.12);
+}
+
+.ui-mode-card--mushaf {
+    border-color: #C4A882;
+    background: #fffcf6;
+    box-shadow: 0 6px 12px rgba(196, 168, 130, 0.15);
+}
+
+.ui-mode-preview {
+    width: 64px;
+    height: 80px;
+    border-radius: 8px;
+    padding: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.ui-mode-preview__block {
+    height: 12px;
+    border-radius: 4px;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+}
+
+.block-yellow { background: #FFF8E7; border-left: 2px solid #F5C842; }
+.block-green { background: #EDFAF3; border-left: 2px solid #3DBE7A; }
+.block-blue { background: #EAF3FF; border-left: 2px solid #5B9BF5; }
+.block-orange { background: #FFF1EA; border-left: 2px solid #F5824A; }
+
+.ui-mode-preview--mushaf {
+    background: #E8E0D0;
+    border: none;
+    padding: 0.35rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.mushaf-mini {
+    width: 100%;
+    height: 90%;
+    background: #FEFCF5;
+    border-radius: 2px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.mushaf-mini__ornament {
+    height: 4px;
+    background: #8B7355;
+}
+
+.mushaf-mini__lines {
+    flex: 1;
+    padding: 4px 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.mushaf-mini__line {
+    height: 8px;
+    background: #FEFCF5;
+    border-left: 2px solid #F5C842;
+}
+
+.mushaf-mini__divider {
+    height: 1px;
+    background: #E8DCC8;
+}
+
+.line-yellow { border-left-color: #F5C842; }
+.line-green { border-left-color: #3DBE7A; }
+.line-blue { border-left-color: #5B9BF5; }
+.line-orange { border-left-color: #F5824A; }
+
+.ui-mode-content {
+    flex: 1;
+}
+
+.ui-mode-title {
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+}
+
+.ui-mode-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    letter-spacing: 0.08em;
+}
+
+.ui-mode-badge--app {
+    background: #059669;
+    color: #fff;
+}
+
+.ui-mode-badge--mushaf {
+    background: #C4A882;
+    color: #3B2A1A;
+    font-weight: 700;
+}
+
+.ui-mode-desc {
+    margin: 0.4rem 0 0;
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.option-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.option-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.option-card {
+    padding: 0.75rem;
+    border-radius: 0.85rem;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.option-card--blue {
+    border-color: #5B9BF5;
+    background: #f0f6ff;
+    box-shadow: 0 4px 10px rgba(91, 155, 245, 0.2);
+}
+
+.option-card--green {
+    border-color: #3DBE7A;
+    background: #f5fdf8;
+    box-shadow: 0 4px 10px rgba(61, 190, 122, 0.2);
+}
+
+.option-card__title {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.option-card__desc {
+    margin: 0.25rem 0 0;
+    font-size: 0.7rem;
+    color: #64748b;
+}
+
+.option-divider {
+    border-top: 1px solid #f1f5f9;
+    padding-top: 0.75rem;
+}
+
+.toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 0.75rem;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    padding: 0.75rem 1rem;
+}
+
+.toggle-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+}
+
 .toggle {
     width: 2.5rem;
     height: 1.25rem;
@@ -624,9 +870,11 @@ function setUIMode(mode: ReaderUIMode) {
     padding: 0;
     transition: background 0.2s;
 }
+
 .toggle.on {
     background: #1a7a4a;
 }
+
 .toggle-dot {
     display: block;
     width: 1rem;
@@ -636,9 +884,91 @@ function setUIMode(mode: ReaderUIMode) {
     margin-left: 0.125rem;
     transition: transform 0.2s;
 }
+
 .toggle.on .toggle-dot {
     transform: translateX(1.25rem);
 }
+
+.radio-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.radio-card {
+    display: flex;
+    gap: 0.75rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    padding: 0.9rem;
+    cursor: pointer;
+}
+
+.radio-input {
+    margin-top: 0.2rem;
+}
+
+.radio-title {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.radio-desc {
+    margin-top: 0.35rem;
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.info-text {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin: 0;
+}
+
+.download-options {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.download-option {
+    padding: 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    background: #f8fafc;
+}
+
+.option-title {
+    margin: 0 0 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #475569;
+}
+
+.option-desc {
+    margin: 0 0 0.5rem;
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+.option-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.juz-select {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    font-size: 0.875rem;
+    min-width: 6rem;
+}
+
 .action-btn {
     padding: 0.5rem 1rem;
     border-radius: 0.5rem;
@@ -650,43 +980,44 @@ function setUIMode(mode: ReaderUIMode) {
     cursor: pointer;
     transition: background 0.2s;
 }
+
 .action-btn:hover:not(:disabled) {
     background: #f1f5f9;
 }
+
 .action-btn.danger {
     border-color: #fecaca;
     color: #b91c1c;
 }
+
 .action-btn.danger:hover:not(:disabled) {
     background: #fef2f2;
 }
+
 .action-btn:disabled {
     opacity: 0.7;
     cursor: not-allowed;
 }
-.download-options {
-    margin-top: 0.75rem;
+
+.button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
 }
-.download-option {
-    padding: 0.75rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.75rem;
-    background: #f8fafc;
+
+.info-list {
+    font-size: 0.85rem;
+    color: #64748b;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
-.download-option h3 {
-    margin: 0 0 0.5rem 0;
+
+.link {
+    color: #1a7a4a;
+    text-decoration: underline;
 }
-.download-option p {
-    margin: 0 0 0.5rem 0;
-}
-.juz-select {
-    padding: 0.5rem 0.75rem;
-    border-radius: 0.5rem;
-    border: 1px solid #e2e8f0;
-    background: #fff;
-    font-size: 0.875rem;
-    min-width: 6rem;
-}
+
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -697,6 +1028,7 @@ function setUIMode(mode: ReaderUIMode) {
     z-index: 200;
     padding: 1rem;
 }
+
 .modal {
     background: #fff;
     border-radius: 1rem;
@@ -704,5 +1036,28 @@ function setUIMode(mode: ReaderUIMode) {
     max-width: 24rem;
     width: 100%;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.modal-text {
+    margin: 0.75rem 0 1rem;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.flex {
+    flex: 1;
 }
 </style>

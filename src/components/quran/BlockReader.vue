@@ -139,7 +139,6 @@ const resolvedBlocks = computed(() => {
         return fill;
     }
 
-    // Fallback: build 4 blocks by splitting ayahs on the page.
     const groups = splitIntoFourBlocks(pageAyahs.value);
     return groups.map((group, i) => ({
         id: `page-${page}-block-${i}`,
@@ -170,15 +169,15 @@ const blockAyahs = computed(() => {
 function blockColorClasses(blockIndex: number): string {
     switch (blockIndex) {
         case 0:
-            return 'bg-yellow-50 border-yellow-400';
+            return 'block-color-yellow';
         case 1:
-            return 'bg-green-50 border-green-400';
+            return 'block-color-green';
         case 2:
-            return 'bg-blue-50 border-blue-400';
+            return 'block-color-blue';
         case 3:
-            return 'bg-orange-50 border-orange-400';
+            return 'block-color-orange';
         default:
-            return 'bg-slate-50 border-slate-300';
+            return 'block-color-neutral';
     }
 }
 
@@ -202,26 +201,21 @@ const pages = computed(() => {
 </script>
 
 <template>
-    <div class="w-full">
-        <!-- New block UI (preferred) -->
-        <div v-if="isBlockMode" class="pb-24 pt-2 sm:pt-4">
+    <div class="block-reader-root">
+        <div v-if="isBlockMode" class="block-mode">
             <PageProgress
                 v-if="showPageNumber"
                 :page="effectivePageNumber ?? 1"
                 :total-pages="604"
             />
 
-            <div v-if="isCombinedAvailable && combinedId" class="mt-4">
+            <div v-if="isCombinedAvailable && combinedId" class="combined-section">
                 <section
-                    class="block-card block-active"
-                    style="background: linear-gradient(135deg, #ecfdf5, #d1fae5); border-color: #059669;"
+                    class="block-card block-card--combined"
+                    :class="{ 'block-completed': isComplete(combinedId) }"
                 >
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <p class="text-xs font-semibold tracking-widest text-emerald-700 uppercase">
-                                Sesi Gabungan
-                            </p>
-                        </div>
+                    <div class="block-header">
+                        <div class="block-title">Sesi Gabungan</div>
                         <div v-if="isComplete(combinedId)" class="block-complete-badge">
                             <svg viewBox="0 0 20 20" fill="currentColor">
                                 <path
@@ -234,30 +228,30 @@ const pages = computed(() => {
                     </div>
 
                     <div
-                        class="mt-3 arabic-font leading-loose text-right"
+                        class="block-arabic combined-arabic"
                         dir="rtl"
                         :style="{ fontSize: 'var(--arab-font-size, 1.875rem)' }"
                     >
                         <span
                             v-for="ayah in ayahs"
                             :key="ayah.id"
-                            class="inline"
+                            class="block-ayah"
                         >
                             {{ ayah.textArab }}
-                            <span class="mx-1 inline-block align-middle text-base text-emerald-700/80">
+                            <span class="block-verse combined-verse">
                                 {{ verseMarker(ayah.verseNumber) }}
                             </span>
                         </span>
                     </div>
                     <p
                         v-if="showTranslation && ayahs.some((a) => a.textIndoTranslation)"
-                        class="mt-4 text-left text-sm text-emerald-800"
+                        class="block-translation combined-translation"
                         dir="ltr"
                     >
                         {{ ayahs.map((a) => formatTranslationText(a.textIndoTranslation ?? '')).filter(Boolean).join(' ') }}
                     </p>
 
-                    <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="block-actions">
                         <TikrarCounter
                             :block-id="combinedId"
                             :reps="sessionReps?.[combinedId] ?? 0"
@@ -279,7 +273,7 @@ const pages = computed(() => {
                 </section>
             </div>
 
-            <div v-else class="mt-4 grid grid-cols-1 gap-3">
+            <div v-else class="block-grid">
                 <section
                     v-for="{ block, ayahs: blockAyahList } in blockAyahs"
                     :key="block.id"
@@ -291,13 +285,8 @@ const pages = computed(() => {
                     ]"
                     @click="emit('block-tapped', block.blockIndex)"
                 >
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <p class="text-xs font-semibold tracking-widest text-slate-600 dark:text-slate-300 uppercase">
-                                Blok {{ block.blockIndex + 1 }}
-                            </p>
-                        </div>
-
+                    <div class="block-header">
+                        <div class="block-title">Blok {{ block.blockIndex + 1 }}</div>
                         <div v-if="isComplete(block.id)" class="block-complete-badge">
                             <svg viewBox="0 0 20 20" fill="currentColor">
                                 <path
@@ -310,30 +299,30 @@ const pages = computed(() => {
                     </div>
 
                     <div
-                        class="mt-3 arabic-font leading-loose text-right"
+                        class="block-arabic"
                         dir="rtl"
                         :style="{ fontSize: 'var(--arab-font-size, 1.875rem)' }"
                     >
                         <span
                             v-for="ayah in blockAyahList"
                             :key="ayah.id"
-                            class="inline"
+                            class="block-ayah"
                         >
                             {{ ayah.textArab }}
-                            <span class="mx-1 inline-block align-middle text-base text-slate-600/90 dark:text-slate-300/90">
+                            <span class="block-verse">
                                 {{ verseMarker(ayah.verseNumber) }}
                             </span>
                         </span>
                     </div>
                     <p
                         v-if="showTranslation && blockAyahList.some((a) => a.textIndoTranslation)"
-                        class="mt-2 text-left text-sm text-slate-500 dark:text-slate-400"
+                        class="block-translation"
                         dir="ltr"
                     >
                         {{ blockAyahList.map((a) => formatTranslationText(a.textIndoTranslation ?? '')).filter(Boolean).join(' ') }}
                     </p>
 
-                    <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="block-actions">
                         <TikrarCounter
                             :block-id="block.id"
                             :reps="sessionReps?.[block.id] ?? 0"
@@ -356,7 +345,6 @@ const pages = computed(() => {
             </div>
         </div>
 
-        <!-- Legacy UI (fallback until ReaderView is wired with blocks/session) -->
         <div v-else class="block-reader">
             <template v-if="currentPage != null">
                 <PageProgress
@@ -401,6 +389,31 @@ const pages = computed(() => {
 </template>
 
 <style scoped>
+.block-reader-root {
+    width: 100%;
+}
+
+.block-mode {
+    padding: 0.5rem 0 6rem;
+}
+
+@media (min-width: 640px) {
+    .block-mode {
+        padding-top: 1rem;
+    }
+}
+
+.block-grid {
+    margin-top: 1rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+}
+
+.combined-section {
+    margin-top: 1rem;
+}
+
 .arabic-font {
     font-family: 'Amiri', 'Uthmanic Hafs', 'Scheherazade New', serif;
 }
@@ -418,6 +431,11 @@ const pages = computed(() => {
     .block-card {
         padding: 1rem;
     }
+}
+
+.block-card--combined {
+    background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+    border-color: #059669;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -454,8 +472,68 @@ const pages = computed(() => {
 }
 
 .block-card.block-completed {
-    opacity: 0.55;
+    opacity: 0.7;
     transform: translateY(4px) scale(1);
+}
+
+.block-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.block-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: #475569;
+}
+
+.block-arabic {
+    margin-top: 0.75rem;
+    font-family: 'Amiri', 'Uthmanic Hafs', 'Scheherazade New', serif;
+    line-height: 2.1;
+    text-align: right;
+}
+
+.block-verse {
+    margin: 0 0.25rem;
+    display: inline-block;
+    vertical-align: middle;
+    font-size: 1rem;
+    color: rgba(71, 85, 105, 0.9);
+}
+
+.combined-verse {
+    color: rgba(4, 120, 87, 0.8);
+}
+
+.block-translation {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #64748b;
+    text-align: left;
+}
+
+.combined-translation {
+    color: #065f46;
+}
+
+.block-actions {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+    .block-actions {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
 }
 
 .mark-done-btn {
@@ -474,23 +552,29 @@ const pages = computed(() => {
     cursor: pointer;
     transition: transform 0.15s, box-shadow 0.15s;
 }
+
 .mark-done-btn:active {
     transform: scale(0.99);
 }
+
 @media (prefers-reduced-motion: reduce) {
     .mark-done-btn {
         transition: none;
     }
 }
+
 .block-reader {
     padding: 1rem 0;
 }
+
 .page-block {
     margin-bottom: 2rem;
 }
+
 .block {
     margin-bottom: 0.5rem;
 }
+
 .block-complete-badge {
     position: absolute;
     right: 0.75rem;
@@ -506,22 +590,59 @@ const pages = computed(() => {
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     border: 1px solid rgba(16, 185, 129, 0.2);
 }
+
 .block-complete-badge svg {
     height: 1rem;
     width: 1rem;
 }
+
 :deep(.dark) .block-complete-badge {
     background-color: rgba(0, 0, 0, 0.5);
     border-color: rgba(16, 185, 129, 0.4);
 }
 
-/* Dark mode block colors */
-:deep(.dark) .bg-yellow-50 { background-color: #23211f; }
-:deep(.dark) .border-yellow-400 { border-color: #46433e; }
-:deep(.dark) .bg-green-50 { background-color: #153A2D; }
-:deep(.dark) .border-green-400 { border-color: #2C6E55; }
-:deep(.dark) .bg-blue-50 { background-color: #1C2638; }
-:deep(.dark) .border-blue-400 { border-color: #3A4E6B; }
-:deep(.dark) .bg-orange-50 { background-color: #3D241C; }
-:deep(.dark) .border-orange-400 { border-color: #663B2B; }
+.block-color-yellow {
+    background-color: #FFF8E7;
+    border-color: #F5C842;
+}
+
+.block-color-green {
+    background-color: #EDFAF3;
+    border-color: #3DBE7A;
+}
+
+.block-color-blue {
+    background-color: #EAF3FF;
+    border-color: #5B9BF5;
+}
+
+.block-color-orange {
+    background-color: #FFF1EA;
+    border-color: #F5824A;
+}
+
+.block-color-neutral {
+    background-color: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+:deep(.dark) .block-color-yellow {
+    background-color: #23211f;
+    border-color: #46433e;
+}
+
+:deep(.dark) .block-color-green {
+    background-color: #153A2D;
+    border-color: #2C6E55;
+}
+
+:deep(.dark) .block-color-blue {
+    background-color: #1C2638;
+    border-color: #3A4E6B;
+}
+
+:deep(.dark) .block-color-orange {
+    background-color: #3D241C;
+    border-color: #663B2B;
+}
 </style>
