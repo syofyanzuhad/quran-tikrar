@@ -8,6 +8,36 @@ import OnboardingOverlay from './components/ui/OnboardingOverlay.vue';
 import ToastNotification from './components/ui/ToastNotification.vue';
 import { useQuran } from './composables/useQuran';
 import { useSettings, SETTINGS_KEY } from './composables/useSettings';
+import FloatingMenu from './components/common/FloatingMenu.vue';
+import { useRouter } from 'vue-router';
+import { useFullscreen } from '@vueuse/core';
+
+const router = useRouter();
+const { isFullscreen, toggle: toggleFullscreen } = useFullscreen();
+
+const handleToggleFullscreen = () => {
+    toggleFullscreen();
+};
+
+const handlePrevPage = () => {
+    const currentRoute = router.currentRoute.value;
+    if (currentRoute.name === 'reader') {
+        const currentPage = Number(currentRoute.params.page);
+        if (currentPage > 1) {
+             router.push(`/baca/${currentPage - 1}`);
+        }
+    }
+};
+
+const handleNextPage = () => {
+    const currentRoute = router.currentRoute.value;
+    if (currentRoute.name === 'reader') {
+        const currentPage = Number(currentRoute.params.page);
+        if (currentPage < 604) {
+            router.push(`/baca/${currentPage + 1}`);
+        }
+    }
+};
 
 const ONBOARDING_DONE_KEY = 'onboarding-done';
 
@@ -88,22 +118,15 @@ function finishOnboarding(): void {
             <BottomNav />
             <ToastNotification />
 
-            <!-- Floating Theme Toggle -->
-            <button
-                class="theme-toggle shadow-lg"
-                @click="toggleDark()"
-                :aria-label="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
-            >
-                <!-- Sun Icon -->
-                <svg v-if="isDark" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-400">
-                    <circle cx="12" cy="12" r="5"/>
-                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-                </svg>
-                <!-- Moon Icon -->
-                <svg v-else xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-600">
-                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                </svg>
-            </button>
+            <!-- Floating Menu -->
+            <FloatingMenu
+                :is-dark="isDark"
+                :is-fullscreen="isFullscreen"
+                @toggle-dark="toggleDark()"
+                @toggle-fullscreen="handleToggleFullscreen"
+                @prev-page="handlePrevPage"
+                @next-page="handleNextPage"
+            />
         </template>
     </div>
 </template>
