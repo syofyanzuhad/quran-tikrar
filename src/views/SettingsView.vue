@@ -186,6 +186,22 @@ function setUIMode(mode: ReaderUIMode) {
     uiMode.value = mode;
     localStorage.setItem('tikrar-reader-ui-mode', mode);
 }
+
+async function shareApp(): Promise<void> {
+    if (!navigator.share) {
+        alert('Share is not supported on this device');
+        return;
+    }
+    try {
+        await navigator.share({
+            title: 'Quran Tikrar',
+            text: 'Aplikasi untuk menghafal Quran dengan metode Tikrar',
+            url: window.location.href,
+        });
+    } catch (err) {
+        // User cancelled the share dialog
+    }
+}
 </script>
 
 <template>
@@ -492,8 +508,15 @@ function setUIMode(mode: ReaderUIMode) {
                 <p>Quran Tikrar — v{{ APP_VERSION }}</p>
                 <p>Data ayat dari <a href="https://quran.com" target="_blank" rel="noopener" class="link">Quran.com</a> API.</p>
                 <p>
-                    <a href="https://github.com/your-repo/quran-tikrar/issues" target="_blank" rel="noopener" class="link">Kirim masukan</a>
+                    <a href="https://github.com/syofyanzuhad/quran-tikrar/issues" target="_blank" rel="noopener" class="text-[#1a7a4a] underline">Kirim masukan</a>
                 </p>
+                <button
+                    type="button"
+                    class="action-btn mt-2"
+                    @click="shareApp"
+                >
+                    📤 Bagikan Aplikasi
+                </button>
             </div>
         </section>
 

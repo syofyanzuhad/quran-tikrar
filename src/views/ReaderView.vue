@@ -175,8 +175,8 @@ onMounted(() => {
 const readerEl = ref<HTMLElement | null>(null);
 useSwipe(readerEl, {
   onSwipeEnd(_e, direction) {
-    if (direction === 'left') goToPage(pageNumber.value + 1);
-    else if (direction === 'right') goToPage(pageNumber.value - 1);
+    if (direction === 'left') goToPage(pageNumber.value - 1);
+    else if (direction === 'right') goToPage(pageNumber.value + 1);
   },
   threshold: 50,
 });
@@ -282,16 +282,16 @@ const { isFullscreen } = useFullscreen(readerEl);
         isFullscreen ? 'reader-nav--fullscreen' : ''
       ]"
     >
-      <button
-        type="button"
-        class="reader-nav__btn"
-        :class="uiMode === 'app' ? 'reader-nav__btn--app' : 'reader-nav__btn--mushaf'"
-        :disabled="pageNumber <= 1"
-        aria-label="Halaman sebelumnya"
-        @click="goToPage(pageNumber - 1)"
+      <button 
+        @click="goToPage(pageNumber + 1)"
+        class="w-10 h-10 flex items-center justify-center rounded-full transition-colors font-bold text-xl active:scale-95"
+        :class="uiMode === 'app' ? 'hover:bg-slate-100 disabled:opacity-30 text-slate-600' : 'hover:bg-[#F5EEDB] disabled:opacity-30 text-[#8B7355]'"
+        :disabled="pageNumber >= TOTAL_PAGES"
+        aria-label="Halaman selanjutnya"
       >
         <svg class="reader-nav__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
       </button>
+
       <button
         type="button"
         class="reader-nav__label"
@@ -301,13 +301,13 @@ const { isFullscreen } = useFullscreen(readerEl);
       >
         Hal {{ pageNumber }}
       </button>
-      <button
-        type="button"
-        class="reader-nav__btn"
-        :class="uiMode === 'app' ? 'reader-nav__btn--app' : 'reader-nav__btn--mushaf'"
-        :disabled="pageNumber >= TOTAL_PAGES"
-        aria-label="Halaman selanjutnya"
-        @click="goToPage(pageNumber + 1)"
+      
+      <button 
+        @click="goToPage(pageNumber - 1)"
+        class="w-10 h-10 flex items-center justify-center rounded-full transition-colors font-bold text-xl active:scale-95"
+        :class="uiMode === 'app' ? 'hover:bg-slate-100 disabled:opacity-30 text-slate-600' : 'hover:bg-[#F5EEDB] disabled:opacity-30 text-[#8B7355]'"
+        :disabled="pageNumber <= 1"
+        aria-label="Halaman sebelumnya"
       >
         <svg class="reader-nav__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
       </button>

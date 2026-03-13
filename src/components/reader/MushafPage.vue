@@ -85,15 +85,12 @@ const toggleLegend = () => { isLegendExpanded.value = !isLegendExpanded.value }
               'mushaf-block--pending': activeBlockIndex !== block.blockIndex && !isDone(block.blockIndex)
             }"
             :style="{
-              backgroundColor: isDone(block.blockIndex) 
-                  ? '#F8F5EE' 
-                  : (getBlockColorSafe(block.blockIndex)?.mushafBg || '#FFF8E7'),
-              borderLeft: `5px solid ${isDone(block.blockIndex)
-                  ? (getBlockColorSafe(block.blockIndex)?.mushafBorder || '#F5C842') + '66'
-                  : (getBlockColorSafe(block.blockIndex)?.mushafBorder || '#F5C842')}`,
-              borderBottom: block.blockIndex < 3
-                ? `1px dashed ${(getBlockColorSafe(block.blockIndex)?.mushafBorder || '#F5C842')}44`
-                : 'none'
+              backgroundColor: 
+                activeBlockIndex === block.blockIndex ? (getBlockColorSafe(block.blockIndex)?.mushafBg || '#FFF8E7') : 
+                (isDone(block.blockIndex) ? '#F8F5EE' : (getBlockColorSafe(block.blockIndex)?.mushafBg || '#FEFCF5')),
+              borderLeft: `5px solid ${activeBlockIndex === block.blockIndex ? (getBlockColorSafe(block.blockIndex)?.mushafBorder || '#F5C842') : (isDone(block.blockIndex) ? (getBlockColorSafe(block.blockIndex)?.mushafBorder || '#F5C842') + '66' : (getBlockColorSafe(block.blockIndex)?.mushafBorder || '#E8DCC8'))}`,
+              borderBottom: block.blockIndex < 3 ? `1px dashed ${(getBlockColorSafe(block.blockIndex)?.mushafBorder || '#F5C842')}44` : 'none',
+              paddingRight: '6px'
             }"
             @click="emit('block-tap', block.blockIndex)"
           >
@@ -105,10 +102,9 @@ const toggleLegend = () => { isLegendExpanded.value = !isLegendExpanded.value }
             <div
               class="mushaf-block__badge"
               :style="{
-                backgroundColor: isDone(block.blockIndex)
-                  ? (getBlockColorSafe(block.blockIndex)?.mushafBorder || '#F5C842') + '88'
-                  : (getBlockColorSafe(block.blockIndex)?.mushafBorder || '#F5C842'),
-                color: '#fff'
+                backgroundColor: (getBlockColorSafe(block.blockIndex)?.mushafBorder || '#E8DCC8'),
+                color: '#FFF',
+                fontSize: '12px'
               }"
             >
               {{ arabicBlockNumbers[block.blockIndex] }}

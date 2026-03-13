@@ -169,15 +169,15 @@ const blockAyahs = computed(() => {
 function blockColorClasses(blockIndex: number): string {
     switch (blockIndex) {
         case 0:
-            return 'block-color-yellow';
+            return 'bg-yellow-50 border-yellow-400';
         case 1:
-            return 'block-color-green';
+            return 'bg-green-50 border-green-400';
         case 2:
-            return 'block-color-blue';
+            return 'bg-blue-50 border-blue-400';
         case 3:
-            return 'block-color-orange';
+            return 'bg-orange-50 border-orange-400';
         default:
-            return 'block-color-neutral';
+            return 'bg-slate-50 border-slate-300';
     }
 }
 
