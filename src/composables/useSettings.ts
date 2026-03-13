@@ -100,7 +100,7 @@ export function useSettings(): SettingsState {
         loadString(STORAGE_KEYS.TIKRAR_MODE, ['single', 'cumulative'], 'single')
     );
     const blockColorMode = ref<BlockColorMode>(
-        loadString(STORAGE_KEYS.BLOCK_COLOR_MODE, ['default', 'four-colors'], 'default')
+        loadString(STORAGE_KEYS.BLOCK_COLOR_MODE, ['default', 'four-colors'], 'four-colors')
     );
     const darkMode = ref<boolean>(loadBool(STORAGE_KEYS.DARK_MODE, false));
 
